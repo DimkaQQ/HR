@@ -69,6 +69,7 @@ function chatInit(meId, wsToken) {
   bindEvents();
   connectWS();
   loadConversations();
+  setupViewportHandler();
 }
 
 // ── WebSocket ──────────────────────────────────────────────────────────────────
@@ -1047,4 +1048,44 @@ function bindEvents() {
 
   // Request browser notification permission
   requestNotifPermission();
+}
+
+// ── Visual Viewport handler (iOS keyboard & browser-chrome awareness) ─────────
+// On iOS Safari the CSS dvh unit doesn't account for the URL bar on older
+// versions (<15.4). visualViewport.height always reflects the real visible
+// area, including keyboard open/close transitions.
+function setupViewportHandler() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+
+  const mc = document.querySelector('.main-content');
+  if (!mc) return;
+
+  let rafId = null;
+
+  function sync() {
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => {
+      rafId = null;
+      if (window.innerWidth > 768) {
+        mc.style.height = '';
+        return;
+      }
+      // vv.height = visible area height, automatically shrinks when keyboard opens
+      // subtract tab bar (56px) so our fixed-position tab bar is not double-counted
+      const h = Math.max(120, Math.round(vv.height - 56));
+      mc.style.height = h + 'px';
+
+      // After keyboard animation settles, scroll messages to bottom
+      if (isAtBottom && $messages) {
+        $messages.scrollTop = $messages.scrollHeight;
+      }
+    });
+  }
+
+  vv.addEventListener('resize', sync);
+  vv.addEventListener('scroll', sync);
+  window.addEventListener('resize', sync); // orientation change
+
+  sync(); // run once immediately to correct any dvh mismatch
 }

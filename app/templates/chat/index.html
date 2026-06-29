@@ -9,7 +9,7 @@
   /* 100dvh = dynamic viewport height — always matches actual visible area.
      Falls back to 100vh on older browsers. */
   .main-content { height: 100vh; height: 100dvh; overflow: hidden; }
-  .page-body { padding: 0; max-width: none; flex: 1; overflow: hidden; display: flex; }
+  .page-body { padding: 0; max-width: none; flex: 1; min-height: 0; overflow: hidden; display: flex; }
   @media (max-width: 768px) {
     .main-content {
       height: calc(100vh  - 56px - env(safe-area-inset-bottom, 0px));
@@ -168,7 +168,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/chat.js?v=10"></script>
+<script src="/static/js/chat.js?v=11"></script>
 <script>
   chatInit({{ user.id }}, "{{ request.cookies.get('access_token', '') }}");
 </script>

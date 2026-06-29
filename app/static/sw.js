@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'restos-v6';
+const CACHE = 'restos-v7';
 const PRECACHE = [
   '/static/css/main.css',
   '/static/js/chat.js',

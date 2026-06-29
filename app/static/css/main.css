@@ -1326,7 +1326,8 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 .wa-chat-inner {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -1350,6 +1351,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 /* ── Messages area ────────────────────────────────────────────────────────── */
 .wa-messages {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: 16px 20px;
