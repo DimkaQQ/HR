@@ -73,7 +73,7 @@
       <div class="wa-messages" id="messages">
         <!-- Load more button at top -->
         <div id="load-more-btn" class="load-more-btn hidden">
-          <button onclick="document.getElementById('load-more-btn').click()">Загрузить ещё</button>
+          <button>Загрузить ещё</button>
         </div>
       </div>
 
@@ -162,7 +162,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/chat.js?v=7"></script>
+<script src="/static/js/chat.js?v=8"></script>
 <script>
   chatInit({{ user.id }}, "{{ request.cookies.get('access_token', '') }}");
 </script>

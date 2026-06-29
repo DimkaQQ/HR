@@ -182,7 +182,7 @@ function makeConvItem(c) {
 function _convPreviewHtml(c) {
   const typing = typingUsers.get(c.id);
   if (typing && typing.size > 0) {
-    const names = [...typing].slice(0, 2).join(', ');
+    const names = [...typing.values()].slice(0, 2).join(', ');
     return `<em class="typing-preview">${esc(names)} печатает...</em>`;
   }
   if (!c.last_message) return '<span style="color:var(--muted)">Нет сообщений</span>';
@@ -314,31 +314,19 @@ function renderMessagesBatch(msgs, prepend = false) {
 }
 
 function appendSingleMessage(msg) {
-  // Check if we should group with last message
-  const lastEl = $messages.lastElementChild;
-  let prevMsg = null;
-  if (lastEl) {
-    prevMsg = { sender_id: parseInt(lastEl.dataset.senderId), created_at: lastEl.dataset.createdAt };
-  }
+  // Find the last actual message row (skip date separators)
+  const lastMsgEl = [...$messages.querySelectorAll('.msg-row')].at(-1);
+  const prevMsg = lastMsgEl
+    ? { sender_id: parseInt(lastMsgEl.dataset.senderId), created_at: lastMsgEl.dataset.createdAt }
+    : null;
 
-  // Date separator check
-  if (prevMsg) {
-    const prevDate = new Date(prevMsg.created_at).toDateString();
-    const thisDate = new Date(msg.created_at).toDateString();
-    if (prevDate !== thisDate) {
-      $messages.appendChild(makeDateSeparator(msg.created_at));
-    }
-  } else if (!prevMsg) {
-    $messages.appendChild(makeDateSeparator(msg.created_at));
-  }
-
+  // buildMsgEl handles date separators internally — don't add one here
   const el = buildMsgEl(msg, prevMsg, null);
   if (el) {
+    $messages.appendChild(el);
     if (isAtBottom) {
-      $messages.appendChild(el);
       scrollBottom(true);
     } else {
-      $messages.appendChild(el);
       updateScrollBtn();
     }
   }
@@ -837,7 +825,7 @@ function showBrowserNotif(msg) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   new Notification(msg.sender_name, {
     body: msg.text.length > 80 ? msg.text.slice(0, 80) + '…' : msg.text,
-    icon: '/static/css/icon.png',
+    icon: '/static/icons/icon-192.png',
   });
 }
 
