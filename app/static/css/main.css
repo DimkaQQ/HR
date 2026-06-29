@@ -172,14 +172,10 @@ a:hover { color: var(--white); }
   display: flex;
   align-items: center;
   padding: 0 32px;
-  padding-top: env(safe-area-inset-top, 0);
   gap: 12px;
   position: sticky;
   top: 0;
   z-index: 50;
-  /* When running as PWA (standalone), height grows to accommodate status bar */
-  min-height: 60px;
-  height: calc(60px + env(safe-area-inset-top, 0px));
 }
 
 .topbar-title {
@@ -2644,18 +2640,26 @@ body.lesson-body { background: var(--black); }
   .sidebar { display: none !important; }
   .sidebar-overlay { display: none !important; }
 
-  /* Bottom tab bar */
+  /* Bottom tab bar — sits above the home-indicator safe zone */
   .mobile-tab-bar {
     display: flex;
     position: fixed;
-    bottom: 0; left: 0; right: 0;
-    height: calc(56px + env(safe-area-inset-bottom, 0px));
+    bottom: env(safe-area-inset-bottom, 0px);
+    left: 0; right: 0;
+    height: 56px;
     background: var(--card);
     border-top: 1px solid var(--border);
     z-index: 200;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
     padding-left: env(safe-area-inset-left, 0px);
     padding-right: env(safe-area-inset-right, 0px);
+  }
+  /* Extend tab bar background into the home-indicator zone below it */
+  .mobile-tab-bar::after {
+    content: '';
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: env(safe-area-inset-bottom, 0px);
+    background: var(--card);
   }
 
   .mobile-tab {
@@ -2699,8 +2703,14 @@ body.lesson-body { background: var(--black); }
     padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
   }
 
-  /* Topbar */
-  .topbar { padding: 0 20px; gap: 12px; }
+  /* Topbar: box-sizing content-box so height=60px is the content area.
+     In PWA mode padding-top = safe-area-inset-top pushes text below status bar. */
+  .topbar {
+    box-sizing: content-box;
+    height: 60px;
+    padding: env(safe-area-inset-top, 0px) 20px 0;
+    gap: 12px;
+  }
   .page-body { padding: 16px; overflow-x: hidden; }
   .main-content { overflow-x: hidden; }
 
