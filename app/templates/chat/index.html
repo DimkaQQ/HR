@@ -6,6 +6,10 @@
 
 {% block head %}
 <style>
+  /* Lock body scroll so iOS Safari can't shift the page when layout reflows */
+  html, body { overflow: hidden; height: 100%; }
+  .app-layout { overflow: hidden; }
+
   /* 100dvh = dynamic viewport height — always matches actual visible area.
      Falls back to 100vh on older browsers. */
   .main-content { height: 100vh; height: 100dvh; overflow: hidden; }
@@ -168,7 +172,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/chat.js?v=11"></script>
+<script src="/static/js/chat.js?v=12"></script>
 <script>
   chatInit({{ user.id }}, "{{ request.cookies.get('access_token', '') }}");
 </script>

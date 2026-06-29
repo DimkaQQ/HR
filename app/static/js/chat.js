@@ -1057,6 +1057,10 @@ function bindEvents() {
 function setupViewportHandler() {
   const vv = window.visualViewport;
   if (!vv) return;
+  // In PWA standalone mode dvh works correctly on iOS 15.4+; skip JS override
+  if (window.navigator.standalone) return;
+  // Only needed on mobile
+  if (window.innerWidth > 768) return;
 
   const mc = document.querySelector('.main-content');
   if (!mc) return;
@@ -1071,21 +1075,17 @@ function setupViewportHandler() {
         mc.style.height = '';
         return;
       }
-      // vv.height = visible area height, automatically shrinks when keyboard opens
-      // subtract tab bar (56px) so our fixed-position tab bar is not double-counted
-      const h = Math.max(120, Math.round(vv.height - 56));
+      // vv.height = real visible area; subtract tab bar (56px) so it isn't double-counted
+      const h = Math.max(200, Math.round(vv.height - 56));
       mc.style.height = h + 'px';
-
-      // After keyboard animation settles, scroll messages to bottom
       if (isAtBottom && $messages) {
         $messages.scrollTop = $messages.scrollHeight;
       }
     });
   }
 
+  // Respond to keyboard open/close and orientation changes; no scroll listener
+  // (scroll events fired constantly cause layout thrash and body jumps on iOS)
   vv.addEventListener('resize', sync);
-  vv.addEventListener('scroll', sync);
-  window.addEventListener('resize', sync); // orientation change
-
-  sync(); // run once immediately to correct any dvh mismatch
+  window.addEventListener('resize', sync);
 }
