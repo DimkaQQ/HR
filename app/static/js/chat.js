@@ -221,8 +221,9 @@ async function openConv(c) {
   $chatWelcome.classList.add('hidden');
   $chatArea.classList.remove('hidden');
 
-  // Reset reply
+  // Reset reply and close any open overlays
   cancelReply();
+  closeEmojiPicker();
 
   // Messages
   $messages.innerHTML = '';

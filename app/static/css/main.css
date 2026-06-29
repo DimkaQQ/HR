@@ -2778,10 +2778,13 @@ body.lesson-body { background: var(--black); }
   inset: 0;
   background: rgba(0,0,0,0.6);
   z-index: 500;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   padding: 16px;
+}
+.compose-modal-overlay:not(.hidden) {
+  display: flex;
 }
 
 .compose-modal {
