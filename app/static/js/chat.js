@@ -229,7 +229,14 @@ async function openConv(c) {
   clearConvBadge(c.id);
   c.unread_count = 0;
 
+  // Mobile: show chat panel, hide list panel
+  document.querySelector('.wa-layout')?.classList.add('conv-open');
+
   $input.focus();
+}
+
+function mobileBackToList() {
+  document.querySelector('.wa-layout')?.classList.remove('conv-open');
 }
 
 function renderChatHeader(c) {

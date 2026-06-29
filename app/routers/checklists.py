@@ -108,6 +108,9 @@ async def checklists_index(request: Request, date_str: str = "", db: AsyncSessio
 
     dates = [date.today() - timedelta(days=i) for i in range(7)]
 
+    total_done_count = sum(cl["done"] for cl in checklist_data)
+    total_all_count = sum(cl["total"] for cl in checklist_data)
+
     return templates.TemplateResponse("checklists/index.html", {
         "request": request,
         "user": user,
@@ -115,6 +118,8 @@ async def checklists_index(request: Request, date_str: str = "", db: AsyncSessio
         "selected_date": selected_date,
         "today": date.today(),
         "dates": dates,
+        "total_done_count": total_done_count,
+        "total_all_count": total_all_count,
     })
 
 

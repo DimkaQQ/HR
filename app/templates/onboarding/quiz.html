@@ -111,6 +111,7 @@ class QuizEngine {
 
     const fb = document.getElementById('quiz-feedback-bar');
     fb.classList.remove('correct', 'wrong', 'visible');
+    fb.style.display = '';
 
     document.getElementById('check-btn').disabled = true;
     this.selected = null;
@@ -161,7 +162,6 @@ class QuizEngine {
       : `Правильный ответ: ${correctOpt ? correctOpt.text : ''}`;
 
     document.getElementById('check-footer').style.display = 'none';
-    document.getElementById('quiz-feedback-bar').style.display = 'flex';
   }
 
   async next() {
@@ -233,7 +233,7 @@ class QuizEngine {
 }
 
 const engine = new QuizEngine();
-engine.load();
+{% if not already_passed %}engine.load();{% endif %}
 
 // Keyboard shortcuts
 document.addEventListener('keydown', e => {

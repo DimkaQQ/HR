@@ -11,7 +11,8 @@
 </head>
 <body>
 <div class="app-layout">
-  <aside class="sidebar">
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <h1>RestOS</h1>
       <span>Demo Platform</span>
@@ -47,6 +48,9 @@
 
   <div class="main-content">
     <header class="topbar">
+      <button class="hamburger" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Меню">
+        <span></span><span></span><span></span>
+      </button>
       <div>
         <span class="topbar-title">{% block page_title %}{% endblock %}</span>
         {% block page_subtitle %}<span class="topbar-subtitle"></span>{% endblock %}
@@ -61,6 +65,15 @@
 </div>
 
 <script>
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('visible');
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('visible');
+  }
+
   // Poll for unread messages every 5 seconds
   (function pollUnread() {
     fetch('/chat/unread')
