@@ -168,7 +168,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/chat.js?v=9"></script>
+<script src="/static/js/chat.js?v=10"></script>
 <script>
   chatInit({{ user.id }}, "{{ request.cookies.get('access_token', '') }}");
 </script>
