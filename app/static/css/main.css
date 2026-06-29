@@ -1,18 +1,18 @@
 :root {
-  --black: #0D0D0D;
-  --card: #141414;
-  --card2: #1A1A1A;
-  --gold: #5B8FF9;
-  --gold-dim: rgba(91, 143, 249, 0.12);
-  --border: rgba(255, 255, 255, 0.08);
-  --white: #E8E8E8;
-  --muted: #6B6B6B;
-  --danger: #E05252;
-  --success: #4BC87E;
-  --info: #5B8FF9;
+  --black: #161616;
+  --card: #1E1E1E;
+  --card2: #272727;
+  --gold: #0A84FF;
+  --gold-dim: rgba(10, 132, 255, 0.1);
+  --border: rgba(255, 255, 255, 0.07);
+  --white: #F5F5F5;
+  --muted: rgba(255, 255, 255, 0.38);
+  --danger: #FF453A;
+  --success: #30D158;
+  --info: #0A84FF;
   --radius: 8px;
   --radius-lg: 12px;
-  --shadow: 0 4px 24px rgba(0,0,0,0.5);
+  --shadow: 0 8px 32px rgba(0,0,0,0.6);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,7 +27,7 @@ body {
   min-height: 100vh;
 }
 
-a { color: var(--gold); text-decoration: none; }
+a { color: rgba(255,255,255,0.7); text-decoration: none; }
 a:hover { color: var(--white); }
 
 /* ── Layout ─────────────────────────────────────────────────── */
@@ -56,7 +56,7 @@ a:hover { color: var(--white); }
 .sidebar-logo h1 {
   font-size: 20px;
   font-weight: 700;
-  color: var(--gold);
+  color: var(--white);
   letter-spacing: -0.3px;
 }
 
@@ -93,8 +93,8 @@ a:hover { color: var(--white); }
 .nav-item:hover { color: var(--white); background: rgba(255,255,255,0.04); }
 
 .nav-item.active {
-  color: var(--gold);
-  background: var(--gold-dim);
+  color: var(--white);
+  background: rgba(255,255,255,0.07);
 }
 
 .nav-item.active::before {
@@ -240,7 +240,7 @@ a:hover { color: var(--white); }
   background: var(--gold);
   color: #fff;
 }
-.btn-primary:hover { background: #7aaafb; color: #fff; }
+.btn-primary:hover { background: #3399ff; color: #fff; }
 
 .btn-outline {
   background: transparent;
@@ -365,7 +365,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: radial-gradient(ellipse at 50% 0%, rgba(91,143,249,0.06) 0%, transparent 60%);
+  background: radial-gradient(ellipse at 50% 0%, rgba(10,132,255,0.06) 0%, transparent 60%);
 }
 
 .login-box {
@@ -476,7 +476,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   transition: border-color 0.15s;
 }
 
-.module-card:hover { border-color: rgba(91,143,249,0.4); }
+.module-card:hover { border-color: rgba(10,132,255,0.4); }
 
 .module-card.completed { border-color: rgba(75,200,126,0.3); }
 
@@ -831,7 +831,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 
 .message.mine .message-bubble {
   background: var(--gold-dim);
-  border-color: rgba(91,143,249,0.2);
+  border-color: rgba(10,132,255,0.2);
   border-radius: 12px 12px 4px 12px;
 }
 
@@ -1043,7 +1043,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(91,143,249,0.4); }
+::-webkit-scrollbar-thumb:hover { background: rgba(10,132,255,0.4); }
 
 /* ── Utility ─────────────────────────────────────────────────── */
 .flex { display: flex; }
@@ -1114,12 +1114,12 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 }
 
 .compose-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: none;
+  color: rgba(255,255,255,0.7);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1127,7 +1127,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   transition: all 0.15s;
   flex-shrink: 0;
 }
-.compose-btn:hover { color: var(--gold); border-color: var(--gold); background: var(--gold-dim); }
+.compose-btn:hover { background: rgba(255,255,255,0.14); color: var(--white); }
 
 .wa-search-wrap {
   position: relative;
@@ -1164,7 +1164,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: rgba(91,143,249,0.08);
+  background: rgba(10,132,255,0.08);
   border-bottom: 1px solid var(--border);
   font-size: 12px;
   color: var(--gold);
@@ -1200,8 +1200,8 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   position: relative;
 }
 
-.conv-item:hover { background: rgba(255,255,255,0.04); }
-.conv-item.active { background: var(--gold-dim); }
+.conv-item:hover { background: rgba(255,255,255,0.05); }
+.conv-item.active { background: rgba(255,255,255,0.09); }
 
 .conv-avatar-wrap {
   position: relative;
@@ -1267,7 +1267,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 
 .conv-badge {
   background: var(--gold);
-  color: #000;
+  color: #fff;
   font-size: 11px;
   font-weight: 700;
   padding: 2px 7px;
@@ -1293,7 +1293,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   position: relative;
   overflow: hidden;
   background: var(--black);
-  background-image: radial-gradient(circle at 20% 80%, rgba(91,143,249,0.02) 0%, transparent 50%);
+  background-image: radial-gradient(circle at 20% 80%, rgba(10,132,255,0.02) 0%, transparent 50%);
 }
 
 .wa-welcome {
@@ -1408,8 +1408,8 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 }
 
 .msg-bubble.mine {
-  background: rgba(91,143,249,0.15);
-  border: 1px solid rgba(91,143,249,0.25);
+  background: rgba(10,132,255,0.15);
+  border: 1px solid rgba(10,132,255,0.25);
   color: var(--white);
 }
 
@@ -1681,7 +1681,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   border-radius: 50%;
   background: var(--gold);
   border: none;
-  color: #000;
+  color: #fff;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1691,7 +1691,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   margin-bottom: 1px;
 }
 
-.wa-send-btn:hover { background: #d4b45e; transform: scale(1.05); }
+.wa-send-btn:hover { background: #3399ff; transform: scale(1.05); }
 .wa-send-btn:active { transform: scale(0.95); }
 
 /* ── Emoji picker ─────────────────────────────────────────────────────────── */
@@ -1945,7 +1945,7 @@ body.lesson-body { background: var(--black); }
 .lesson-btn:hover:not(:disabled) {
   background: #d4b05e;
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(91,143,249,0.35);
+  box-shadow: 0 4px 16px rgba(10,132,255,0.35);
   color: var(--black);
 }
 .lesson-btn:active { transform: translateY(0); }
@@ -2171,7 +2171,7 @@ body.lesson-body { background: var(--black); }
 .skill-node.active {
   background: var(--gold);
   border-color: #c8903a;
-  box-shadow: 0 4px 20px rgba(91,143,249,0.4);
+  box-shadow: 0 4px 20px rgba(10,132,255,0.4);
   animation: ob-node-pulse 2.4s ease-in-out infinite;
 }
 .skill-node.active .skill-node-label { color: rgba(0,0,0,0.75); }
@@ -2179,7 +2179,7 @@ body.lesson-body { background: var(--black); }
 .skill-node.in-progress {
   background: var(--card);
   border-color: var(--gold);
-  box-shadow: 0 0 0 4px rgba(91,143,249,0.12);
+  box-shadow: 0 0 0 4px rgba(10,132,255,0.12);
 }
 
 .skill-node.locked {
@@ -2190,8 +2190,8 @@ body.lesson-body { background: var(--black); }
 }
 
 @keyframes ob-node-pulse {
-  0%, 100% { box-shadow: 0 4px 20px rgba(91,143,249,0.4); }
-  50% { box-shadow: 0 4px 32px rgba(91,143,249,0.6); }
+  0%, 100% { box-shadow: 0 4px 20px rgba(10,132,255,0.4); }
+  50% { box-shadow: 0 4px 32px rgba(10,132,255,0.6); }
 }
 
 .skill-node-tooltip {
@@ -2416,7 +2416,7 @@ body.lesson-body { background: var(--black); }
   position: relative;
   overflow: hidden;
 }
-.cl-task:hover { border-color: rgba(91,143,249,0.2); background: var(--card); }
+.cl-task:hover { border-color: rgba(10,132,255,0.2); background: var(--card); }
 .cl-task.done {
   background: rgba(75,200,126,0.07);
   border-color: rgba(75,200,126,0.2);
@@ -2529,7 +2529,7 @@ body.lesson-body { background: var(--black); }
   border-radius: 14px;
   z-index: 9999;
   pointer-events: none;
-  box-shadow: 0 4px 20px rgba(91,143,249,0.4);
+  box-shadow: 0 4px 20px rgba(10,132,255,0.4);
   animation: cl-combo-anim 1.6s ease forwards;
 }
 @keyframes cl-combo-anim {
@@ -2567,7 +2567,7 @@ body.lesson-body { background: var(--black); }
 .role-badge.role-manager {
   background: var(--gold-dim);
   color: var(--gold);
-  border: 1px solid rgba(91, 143, 249, 0.4);
+  border: 1px solid rgba(10, 132, 255, 0.4);
 }
 .role-badge.role-staff {
   background: rgba(107, 101, 96, 0.15);
