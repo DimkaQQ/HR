@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% set active_page = "onboarding" %}
+
+{% block title %}Онбординг — RestOS Demo{% endblock %}
+{% block page_title %}Онбординг{% endblock %}
+{% block page_subtitle %}<span class="topbar-subtitle">· Обучение сотрудников</span>{% endblock %}
+
+{% block content %}
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-label">Ваш прогресс</div>
+    <div class="stat-value">{{ overall_pct }}%</div>
+    <div class="stat-meta">{{ completed }} из {{ total }} модулей</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Пройдено модулей</div>
+    <div class="stat-value">{{ completed }}</div>
+    <div class="stat-meta">Завершено с сертификатом</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Осталось</div>
+    <div class="stat-value">{{ total - completed }}</div>
+    <div class="stat-meta">Модулей к изучению</div>
+  </div>
+</div>
+
+{% if overall_pct > 0 %}
+<div class="card mb-4">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <span style="font-size:13px;color:var(--muted)">Общий прогресс обучения</span>
+    <span style="font-size:13px;font-weight:600;color:var(--gold)">{{ overall_pct }}%</span>
+  </div>
+  <div class="progress-bar" style="height:10px">
+    <div class="progress-fill green" style="width:{{ overall_pct }}%"></div>
+  </div>
+</div>
+{% endif %}
+
+<div class="section-title">Учебные модули</div>
+<div class="section-subtitle">Последовательно проходите каждый модуль и сдавайте тест</div>
+
+<div class="modules-grid">
+  {% for d in module_data %}
+  {% set m = d.module %}
+  {% set prog = d.progress %}
+  <div class="module-card {% if prog and prog.completed %}completed{% endif %}">
+    <div class="module-number">Модуль {{ loop.index }}</div>
+    <div class="module-title">{{ m.title }}</div>
+    <div class="module-desc">{{ m.description }}</div>
+
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px">
+        <span>Шаги: {{ d.current_step }} / {{ d.steps_count }}</span>
+        <span>{{ d.percent }}%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill {% if prog and prog.completed %}green{% endif %}" style="width:{{ d.percent }}%"></div>
+      </div>
+    </div>
+
+    <div class="module-footer">
+      {% if prog and prog.completed %}
+        <span class="badge badge-green">✓ Завершено</span>
+        <a href="/onboarding/{{ m.id }}/certificate" class="btn btn-outline btn-sm">Сертификат</a>
+      {% elif prog and prog.current_step > 0 %}
+        <span class="badge badge-gold">В процессе</span>
+        <a href="/onboarding/{{ m.id }}/step/{{ prog.current_step }}" class="btn btn-primary btn-sm">Продолжить</a>
+      {% else %}
+        <span class="badge badge-muted">Не начато</span>
+        <a href="/onboarding/{{ m.id }}/step/1" class="btn btn-outline btn-sm">Начать</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if staff_data %}
+<div style="margin-top:36px">
+  <div class="section-title">Прогресс сотрудников</div>
+  <div class="section-subtitle">Менеджерский обзор</div>
+  <div class="card">
+    <table class="staff-table">
+      <thead>
+        <tr>
+          <th>Сотрудник</th>
+          <th>Прогресс</th>
+          <th>Модулей</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in staff_data %}
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="avatar avatar-sm" style="background:{{ s.user.avatar_color }}">{{ s.user.initials }}</div>
+              <div>
+                <div style="font-weight:500">{{ s.user.name }}</div>
+                <div style="font-size:12px;color:var(--muted)">{{ s.user.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td style="width:200px">
+            <div class="progress-bar">
+              <div class="progress-fill green" style="width:{{ (s.completed / s.total * 100) | int if s.total else 0 }}%"></div>
+            </div>
+          </td>
+          <td>
+            <span style="font-weight:600">{{ s.completed }}</span>
+            <span style="color:var(--muted)"> / {{ s.total }}</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

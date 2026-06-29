@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: resto_demo
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-demo_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d resto_demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build: .
+    command: alembic upgrade head
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-demo_password}@db:5432/resto_demo
+    depends_on:
+      db:
+        condition: service_healthy
+
+  seed:
+    build: .
+    command: python scripts/seed_demo.py
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-demo_password}@db:5432/resto_demo
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  api:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-demo_password}@db:5432/resto_demo
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      REFRESH_TOKEN_EXPIRE_DAYS: 30
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:

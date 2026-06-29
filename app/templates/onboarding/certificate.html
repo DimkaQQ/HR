@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% set active_page = "onboarding" %}
+
+{% block title %}Сертификат — {{ module.title }}{% endblock %}
+{% block page_title %}Сертификат{% endblock %}
+{% block topbar_actions %}
+  <button onclick="window.print()" class="btn btn-outline btn-sm no-print">🖨 Печать / PDF</button>
+  <a href="/onboarding" class="btn btn-ghost btn-sm no-print">← К модулям</a>
+{% endblock %}
+
+{% block content %}
+<div class="certificate-page">
+  <div class="certificate-logo">Ресторан Demo · RestOS Platform</div>
+
+  <div class="certificate-title">Сертификат об окончании</div>
+
+  <p style="font-size:15px;color:var(--muted);margin-bottom:16px">Настоящим подтверждается, что</p>
+
+  <div class="certificate-name">{{ user.name }}</div>
+
+  <p class="certificate-text">успешно прошёл(а) обучение по модулю</p>
+  <div class="certificate-module">«{{ module.title }}»</div>
+
+  <div style="width:80px;height:2px;background:var(--gold);margin:0 auto 24px"></div>
+
+  <p class="certificate-text">
+    Дата завершения:
+    <strong>{{ progress.completed_at.strftime('%d.%m.%Y') if progress.completed_at else '' }}</strong>
+  </p>
+
+  <div style="margin-top:40px;display:flex;justify-content:space-around;align-items:flex-end">
+    <div style="text-align:center">
+      <div style="font-size:28px;font-family:serif;color:var(--gold);margin-bottom:4px">RestOS</div>
+      <div style="width:120px;height:1px;background:var(--border);margin:0 auto 6px"></div>
+      <div style="font-size:11px;color:var(--muted)">Платформа обучения</div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:28px;color:var(--gold);margin-bottom:4px">🏆</div>
+      <div style="font-size:11px;color:var(--muted)">Тест пройден успешно</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

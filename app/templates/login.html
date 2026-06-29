@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Войти — RestOS Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+<div class="login-page">
+  <div class="login-box">
+    <div class="login-logo">
+      <h1>RestOS</h1>
+      <p>Платформа для управления рестораном</p>
+    </div>
+
+    <div class="card login-card">
+      <div class="login-title">Добро пожаловать</div>
+      <div class="login-subtitle">Войдите в свой аккаунт</div>
+
+      {% if error %}
+      <div class="alert alert-error">⚠️ {{ error }}</div>
+      {% endif %}
+
+      <form method="post" action="/login" id="login-form">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" type="email" name="email" id="email-input"
+                 placeholder="your@email.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Пароль</label>
+          <input class="form-input" type="password" name="password"
+                 placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg">Войти</button>
+      </form>
+
+      <div class="login-divider"><span>Демо аккаунты</span></div>
+
+      <div class="login-demo-accounts">
+        <div class="demo-account" onclick="fillLogin('manager@demo.com')">
+          <div class="avatar avatar-sm" style="background:#C8A84B">АИ</div>
+          <div class="demo-account-info">
+            <div class="demo-account-email">manager@demo.com</div>
+            <div class="demo-account-role">Менеджер · пароль: demo123</div>
+          </div>
+          <span style="color:var(--muted);font-size:18px">→</span>
+        </div>
+        <div class="demo-account" onclick="fillLogin('staff1@demo.com')">
+          <div class="avatar avatar-sm" style="background:#4B7EC8">МП</div>
+          <div class="demo-account-info">
+            <div class="demo-account-email">staff1@demo.com</div>
+            <div class="demo-account-role">Сотрудник · пароль: demo123</div>
+          </div>
+          <span style="color:var(--muted);font-size:18px">→</span>
+        </div>
+        <div class="demo-account" onclick="fillLogin('staff2@demo.com')">
+          <div class="avatar avatar-sm" style="background:#4BC87E">ДС</div>
+          <div class="demo-account-info">
+            <div class="demo-account-email">staff2@demo.com</div>
+            <div class="demo-account-role">Сотрудник · пароль: demo123</div>
+          </div>
+          <span style="color:var(--muted);font-size:18px">→</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function fillLogin(email) {
+  document.getElementById('email-input').value = email;
+  document.querySelector('input[name="password"]').value = 'demo123';
+  document.getElementById('login-form').submit();
+}
+</script>
+</body>
+</html>

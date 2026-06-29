@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% set active_page = "onboarding" %}
+
+{% block title %}Тест: {{ module.title }}{% endblock %}
+{% block page_title %}Тест{% endblock %}
+{% block page_subtitle %}<span class="topbar-subtitle">· {{ module.title }}</span>{% endblock %}
+{% block topbar_actions %}
+  <a href="/onboarding" class="btn btn-ghost btn-sm">← Все модули</a>
+{% endblock %}
+
+{% block content %}
+<div class="step-content">
+  {% if request.query_params.get('result') and last_attempt %}
+  <div class="card quiz-result-card mb-4">
+    <div class="quiz-score-circle {% if last_attempt.passed %}pass{% else %}fail{% endif %}">
+      {{ (last_attempt.score * 100) | int }}%
+    </div>
+    <h2 style="font-size:22px;font-weight:700;margin-bottom:8px">
+      {% if last_attempt.passed %}🎉 Тест пройден!{% else %}😔 Попробуйте ещё раз{% endif %}
+    </h2>
+    <p style="color:var(--muted);margin-bottom:20px">
+      {% if last_attempt.passed %}
+        Поздравляем! Вы успешно прошли тест по модулю «{{ module.title }}».
+      {% else %}
+        Для прохождения нужно набрать {{ (quiz.pass_score * 100) | int }}% правильных ответов.
+        Вы набрали {{ (last_attempt.score * 100) | int }}%. Повторите материал и попробуйте снова.
+      {% endif %}
+    </p>
+    {% if last_attempt.passed %}
+    <div style="display:flex;gap:10px;justify-content:center">
+      <a href="/onboarding/{{ module.id }}/certificate" class="btn btn-primary">Получить сертификат 🏆</a>
+      <a href="/onboarding" class="btn btn-outline">К модулям</a>
+    </div>
+    {% else %}
+    <a href="/onboarding/{{ module.id }}/step/1" class="btn btn-outline">Повторить материал</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if not (request.query_params.get('result') and last_attempt and last_attempt.passed) %}
+  <div class="step-breadcrumb">
+    <a href="/onboarding">Онбординг</a>
+    <span class="sep">/</span>
+    <a href="/onboarding/{{ module.id }}/step/1">{{ module.title }}</a>
+    <span class="sep">/</span>
+    <span>Тест</span>
+  </div>
+
+  <div class="step-card" style="max-width:100%">
+    <div class="step-header">
+      <div class="step-label">Финальный тест</div>
+      <h2 class="step-title">{{ module.title }}</h2>
+      <p style="color:var(--muted);font-size:14px;margin-top:8px">
+        Для прохождения необходимо ответить правильно на {{ (quiz.pass_score * 100) | int }}% вопросов.
+      </p>
+    </div>
+
+    <form method="post" action="/onboarding/{{ module.id }}/quiz/submit">
+      {% for question in quiz.questions %}
+      <div class="quiz-question">
+        <div class="quiz-question-text">{{ loop.index }}. {{ question.text }}</div>
+        <div class="quiz-options">
+          {% for option in question.options %}
+          <label class="quiz-option">
+            <input type="radio" name="question_{{ question.id }}" value="{{ option.id }}" required>
+            {{ option.text }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button type="submit" class="btn btn-primary btn-lg">Отправить ответы</button>
+        <a href="/onboarding/{{ module.id }}/step/{{ module.steps | length }}" class="btn btn-outline">← Вернуться</a>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

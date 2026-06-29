@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% set active_page = "onboarding" %}
+
+{% block title %}{{ module.title }} — Шаг {{ step_num }}{% endblock %}
+{% block page_title %}{{ module.title }}{% endblock %}
+{% block page_subtitle %}<span class="topbar-subtitle">· Шаг {{ step_num }} из {{ total_steps }}</span>{% endblock %}
+{% block topbar_actions %}
+  <a href="/onboarding" class="btn btn-ghost btn-sm">← Все модули</a>
+{% endblock %}
+
+{% block content %}
+<div class="step-content">
+  <div class="step-breadcrumb">
+    <a href="/onboarding">Онбординг</a>
+    <span class="sep">/</span>
+    <span>{{ module.title }}</span>
+    <span class="sep">/</span>
+    <span>Шаг {{ step_num }}</span>
+  </div>
+
+  <div class="steps-indicator">
+    {% for i in range(total_steps) %}
+    <div class="step-dot {% if i + 1 < step_num %}done{% elif i + 1 == step_num %}current{% endif %}"></div>
+    {% endfor %}
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-label">Шаг {{ step_num }} из {{ total_steps }}</div>
+      <h2 class="step-title">{{ step.title }}</h2>
+    </div>
+
+    <div class="step-text">{{ step.content }}</div>
+
+    {% if step.video_url %}
+    <div class="step-video">
+      <iframe src="{{ step.video_url }}" allowfullscreen></iframe>
+    </div>
+    {% endif %}
+
+    <div class="step-nav">
+      {% if step_num > 1 %}
+      <a href="/onboarding/{{ module.id }}/step/{{ step_num - 1 }}" class="btn btn-outline">← Назад</a>
+      {% else %}
+      <a href="/onboarding" class="btn btn-ghost">← К модулям</a>
+      {% endif %}
+
+      {% if step_num < total_steps %}
+      <a href="/onboarding/{{ module.id }}/step/{{ step_num + 1 }}" class="btn btn-primary">
+        Следующий шаг →
+      </a>
+      {% else %}
+      <a href="/onboarding/{{ module.id }}/quiz" class="btn btn-primary">
+        Пройти тест →
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

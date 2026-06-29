@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% set active_page = "checklists" %}
+
+{% block title %}История чек-листов{% endblock %}
+{% block page_title %}История{% endblock %}
+{% block page_subtitle %}<span class="topbar-subtitle">· Чек-листы за 14 дней</span>{% endblock %}
+{% block topbar_actions %}
+  <a href="/checklists" class="btn btn-outline btn-sm">← Сегодня</a>
+{% endblock %}
+
+{% block content %}
+{% for day in history_data %}
+{% if day.dailies %}
+<div style="margin-bottom:24px">
+  <div style="font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">
+    {{ day.date.strftime('%d %B %Y') }}
+  </div>
+
+  {% for daily in day.dailies %}
+  {% set done_count = daily.completions | selectattr('completed', 'equalto', True) | list | length %}
+  {% set total_count = daily.completions | length %}
+  <div class="card mb-3">
+    <div class="card-header">
+      <div>
+        <div class="card-title">{{ daily.template.name }}</div>
+        <div class="card-subtitle">{{ done_count }} / {{ total_count }} выполнено</div>
+      </div>
+      <span class="badge {% if done_count == total_count %}badge-green{% elif done_count > 0 %}badge-gold{% else %}badge-muted{% endif %}">
+        {% if done_count == total_count %}Выполнено{% elif done_count > 0 %}Частично{% else %}Не начато{% endif %}
+      </span>
+    </div>
+
+    <div class="progress-bar mb-3">
+      <div class="progress-fill green" style="width:{{ ((done_count / total_count * 100) | int) if total_count else 0 }}%"></div>
+    </div>
+
+    {% if user.role.value == 'manager' %}
+    <table class="staff-table">
+      <thead>
+        <tr>
+          <th>Задача</th>
+          <th>Статус</th>
+          <th>Кто выполнил</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for comp in daily.completions | sort(attribute='item.order') %}
+        <tr>
+          <td style="color:{% if comp.completed %}var(--muted){% else %}var(--white){% endif %};
+                     {% if comp.completed %}text-decoration:line-through{% endif %}">
+            {{ comp.item.text }}
+          </td>
+          <td>
+            {% if comp.completed %}
+            <span class="badge badge-green">✓ Выполнено</span>
+            {% else %}
+            <span class="badge badge-muted">Пропущено</span>
+            {% endif %}
+          </td>
+          <td style="color:var(--muted);font-size:13px">
+            {% if comp.completed and comp.user %}{{ comp.user.name }}{% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endfor %}
+
+{% set has_any = history_data | selectattr('dailies') | list %}
+{% if not has_any %}
+<div class="card" style="text-align:center;padding:48px">
+  <div style="font-size:48px;margin-bottom:16px">📋</div>
+  <div style="font-size:16px;font-weight:600;margin-bottom:8px">История пуста</div>
+  <div style="color:var(--muted)">Чек-листы за последние 14 дней не найдены</div>
+</div>
+{% endif %}
+{% endblock %}

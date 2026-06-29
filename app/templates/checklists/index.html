@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% set active_page = "checklists" %}
+
+{% block title %}Чек-листы — RestOS Demo{% endblock %}
+{% block page_title %}Чек-листы{% endblock %}
+{% block page_subtitle %}<span class="topbar-subtitle">· {{ selected_date.strftime('%d.%m.%Y') }}</span>{% endblock %}
+{% block topbar_actions %}
+  <a href="/checklists/history" class="btn btn-outline btn-sm">История</a>
+{% endblock %}
+
+{% block content %}
+<div class="date-tabs">
+  {% for d in dates %}
+  <a href="/checklists?date={{ d.isoformat() }}"
+     class="date-tab {% if d == selected_date %}active{% endif %}">
+    {% if d == today %}Сегодня
+    {% elif d == today - (today - d) %}{{ d.strftime('%d.%m') }}
+    {% else %}{{ d.strftime('%d.%m') }}{% endif %}
+    {% if loop.index == 2 %}(вчера){% endif %}
+  </a>
+  {% endfor %}
+</div>
+
+{% set total_done = namespace(value=0) %}
+{% set total_all = namespace(value=0) %}
+{% for cl in checklist_data %}
+  {% set total_done.value = total_done.value + cl.done %}
+  {% set total_all.value = total_all.value + cl.total %}
+{% endfor %}
+
+<div class="stats-row mb-4">
+  <div class="stat-card">
+    <div class="stat-label">Выполнено задач</div>
+    <div class="stat-value">{{ total_done.value }}</div>
+    <div class="stat-meta">из {{ total_all.value }} на {{ selected_date.strftime('%d.%m') }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Прогресс дня</div>
+    <div class="stat-value">{{ ((total_done.value / total_all.value * 100) | int) if total_all.value else 0 }}%</div>
+    <div class="stat-meta">{{ checklist_data | length }} чек-листов</div>
+  </div>
+</div>
+
+{% for cl in checklist_data %}
+<div class="checklist-card">
+  <div class="checklist-card-header">
+    <div>
+      <div class="card-title">{{ cl.template.name }}</div>
+      {% if cl.template.description %}
+      <div class="card-subtitle">{{ cl.template.description }}</div>
+      {% endif %}
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="text-align:right">
+        <div style="font-size:13px;color:var(--muted)">{{ cl.done }} / {{ cl.total }}</div>
+        <div style="font-size:11px;color:{% if cl.done == cl.total %}var(--success){% else %}var(--muted){% endif %}">
+          {% if cl.done == cl.total %}Выполнено ✓{% else %}В процессе{% endif %}
+        </div>
+      </div>
+      <div style="width:48px">
+        <div class="progress-bar" style="height:8px">
+          <div class="progress-fill green" style="width:{{ ((cl.done / cl.total * 100) | int) if cl.total else 0 }}%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% for item_data in cl.items_data %}
+  {% set comp = item_data.completion %}
+  {% set done = comp and comp.completed %}
+  <div class="checklist-item-row {% if done %}done{% endif %}"
+       onclick="toggleItem({{ cl.daily.id }}, {{ item_data.item.id }}, this)"
+       id="item-{{ cl.daily.id }}-{{ item_data.item.id }}">
+    <div class="checklist-checkbox {% if done %}checked{% endif %}">
+      {% if done %}✓{% endif %}
+    </div>
+    <div class="checklist-item-text">{{ item_data.item.text }}</div>
+    <div class="checklist-item-who">
+      {% if done and comp.user %}{{ comp.user.name }}{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function toggleItem(dailyId, itemId, rowEl) {
+  const res = await fetch(`/checklists/toggle/${dailyId}/${itemId}`, { method: 'POST' });
+  const data = await res.json();
+
+  const checkbox = rowEl.querySelector('.checklist-checkbox');
+  const whoEl = rowEl.querySelector('.checklist-item-who');
+
+  if (data.completed) {
+    checkbox.classList.add('checked');
+    checkbox.textContent = '✓';
+    rowEl.classList.add('done');
+    whoEl.textContent = data.user_name;
+  } else {
+    checkbox.classList.remove('checked');
+    checkbox.textContent = '';
+    rowEl.classList.remove('done');
+    whoEl.textContent = '';
+  }
+
+  // Update summary counts
+  updateCounters();
+}
+
+function updateCounters() {
+  const done = document.querySelectorAll('.checklist-checkbox.checked').length;
+  const total = document.querySelectorAll('.checklist-checkbox').length;
+  const statCards = document.querySelectorAll('.stat-card .stat-value');
+  if (statCards[0]) statCards[0].textContent = done;
+  if (statCards[1]) statCards[1].textContent = total ? Math.round(done / total * 100) + '%' : '0%';
+}
+</script>
+{% endblock %}
