@@ -140,6 +140,12 @@ function renderConvList() {
     .forEach(c => $convList.appendChild(makeConvItem(c)));
 }
 
+function roleBadge(role) {
+  if (!role) return '';
+  const label = role === 'manager' ? 'Менеджер' : 'Сотрудник';
+  return `<span class="role-badge role-${role}">${label}</span>`;
+}
+
 function makeConvItem(c) {
   const div = document.createElement('div');
   div.className = 'conv-item';
@@ -153,6 +159,7 @@ function makeConvItem(c) {
   const previewHtml = _convPreviewHtml(c);
   const timeHtml = c.last_message ? `<span class="conv-time">${fmtConvTime(c.last_message.created_at)}</span>` : '';
   const badge = c.unread_count > 0 ? `<span class="conv-badge">${c.unread_count > 99 ? '99+' : c.unread_count}</span>` : '';
+  const roleHtml = c.type === 'direct' && c.partner_role ? roleBadge(c.partner_role) : '';
 
   div.innerHTML = `
     <div class="conv-avatar-wrap">
@@ -161,7 +168,7 @@ function makeConvItem(c) {
     </div>
     <div class="conv-body">
       <div class="conv-top">
-        <span class="conv-name">${esc(c.name)}</span>
+        <span class="conv-name">${esc(c.name)}</span>${roleHtml}
         ${timeHtml}
       </div>
       <div class="conv-bottom">
@@ -248,10 +255,12 @@ function renderChatHeader(c) {
   const onlineDot = c.type === 'direct'
     ? `<span class="online-dot ${isOnline ? 'is-online' : ''}" style="width:10px;height:10px;top:auto;right:auto;position:static;margin-right:2px"></span>` : '';
 
+  const headerRoleHtml = c.type === 'direct' && c.partner_role ? roleBadge(c.partner_role) : '';
+
   $chatHeader.innerHTML = `
     <div class="avatar" style="background:${c.color};${c.type==='general'?'font-size:18px;font-weight:700':''};margin-right:12px">${c.initials}</div>
     <div>
-      <div style="font-weight:600;font-size:15px">${esc(c.name)}</div>
+      <div style="font-weight:600;font-size:15px;display:flex;align-items:center;gap:8px">${esc(c.name)}${headerRoleHtml}</div>
       <div style="font-size:12px;display:flex;align-items:center;gap:4px">${onlineDot}${statusText}</div>
     </div>
   `;
@@ -374,9 +383,18 @@ function buildMsgEl(msg, prevMsg, nextMsg) {
     ? `<div class="avatar msg-avatar" style="background:${msg.sender_color}">${msg.sender_initials}</div>`
     : `<div class="msg-avatar-spacer"></div>`;
 
-  // Sender name (only for first in group, group chats)
-  const nameHtml = !isMine && isFirst && currentConvInfo?.type === 'general'
-    ? `<div class="msg-sender-name" style="color:${msg.sender_color}">${esc(msg.sender_name)}</div>` : '';
+  // Sender name (first in group, or first in any DM to show role)
+  let nameHtml = '';
+  if (!isMine && isFirst) {
+    const showName = currentConvInfo?.type === 'general';
+    const showRole = msg.sender_role && (currentConvInfo?.type === 'general' || currentConvInfo?.type === 'direct');
+    if (showName || showRole) {
+      nameHtml = `<div class="msg-sender-name">
+        ${showName ? `<span style="color:${msg.sender_color}">${esc(msg.sender_name)}</span>` : ''}
+        ${showRole ? roleBadge(msg.sender_role) : ''}
+      </div>`;
+    }
+  }
 
   // Reply preview
   let replyHtml = '';
