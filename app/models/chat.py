@@ -9,6 +9,7 @@ from app.database import Base
 class ConversationType(str, enum.Enum):
     general = "general"
     direct = "direct"
+    group = "group"
 
 
 class Conversation(Base):

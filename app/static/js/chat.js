@@ -589,6 +589,8 @@ function hideContextMenu() {
 }
 
 // ── Emoji picker ───────────────────────────────────────────────────────────────
+let _emojiOutsideListener = null;
+
 function buildEmojiPicker() {
   if (!$emojiPicker) return;
   EMOJIS.forEach(em => {
@@ -601,15 +603,27 @@ function buildEmojiPicker() {
 }
 
 function toggleEmojiPicker() {
-  $emojiPicker.classList.toggle('hidden');
-  if (!$emojiPicker.classList.contains('hidden')) {
-    setTimeout(() => document.addEventListener('click', closeEmojiOnOutside, { once: true }), 0);
+  const isOpen = !$emojiPicker.classList.contains('hidden');
+  if (isOpen) {
+    closeEmojiPicker();
+  } else {
+    $emojiPicker.classList.remove('hidden');
+    if (!_emojiOutsideListener) {
+      _emojiOutsideListener = (e) => {
+        if (!$emojiPicker.contains(e.target) && e.target.id !== 'emoji-btn') {
+          closeEmojiPicker();
+        }
+      };
+      setTimeout(() => document.addEventListener('click', _emojiOutsideListener), 0);
+    }
   }
 }
 
-function closeEmojiOnOutside(e) {
-  if (!$emojiPicker.contains(e.target)) {
-    $emojiPicker.classList.add('hidden');
+function closeEmojiPicker() {
+  $emojiPicker.classList.add('hidden');
+  if (_emojiOutsideListener) {
+    document.removeEventListener('click', _emojiOutsideListener);
+    _emojiOutsideListener = null;
   }
 }
 
@@ -620,7 +634,7 @@ function insertEmoji(em) {
   $input.value = val.slice(0, start) + em + val.slice(end);
   $input.selectionStart = $input.selectionEnd = start + em.length;
   $input.focus();
-  $emojiPicker.classList.add('hidden');
+  closeEmojiPicker();
 }
 
 // ── Delete ────────────────────────────────────────────────────────────────────
@@ -904,6 +918,99 @@ function esc(str) {
     .replace(/"/g,'&quot;');
 }
 
+// ── Compose (new chat/group) ───────────────────────────────────────────────────
+let composeUsers = [];
+let composeMode = 'direct';
+
+async function openNewChatModal() {
+  if (!composeUsers.length) {
+    const r = await fetch('/chat/users');
+    composeUsers = await r.json();
+  }
+  switchComposeMode('direct');
+  renderComposeUsers();
+  document.getElementById('compose-modal').classList.remove('hidden');
+}
+
+function closeComposeModal() {
+  const modal = document.getElementById('compose-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function switchComposeMode(mode) {
+  composeMode = mode;
+  document.getElementById('compose-tab-direct').classList.toggle('active', mode === 'direct');
+  document.getElementById('compose-tab-group').classList.toggle('active', mode === 'group');
+  const nameWrap = document.getElementById('compose-name-wrap');
+  if (nameWrap) nameWrap.style.display = mode === 'group' ? 'block' : 'none';
+  // In direct mode only one user can be selected
+  if (mode === 'direct') {
+    document.querySelectorAll('.compose-user-check').forEach(cb => {
+      cb.type = 'radio';
+      cb.name = 'compose-user';
+    });
+  } else {
+    document.querySelectorAll('.compose-user-check').forEach(cb => {
+      cb.type = 'checkbox';
+      cb.name = '';
+    });
+  }
+}
+
+function renderComposeUsers() {
+  const list = document.getElementById('compose-user-list');
+  if (!list) return;
+  list.innerHTML = '';
+  composeUsers.forEach(u => {
+    const label = document.createElement('label');
+    label.className = 'compose-user-item';
+    label.innerHTML = `
+      <input type="${composeMode === 'direct' ? 'radio' : 'checkbox'}" class="compose-user-check" name="compose-user" value="${u.id}">
+      <div class="avatar" style="background:${u.color};width:36px;height:36px;font-size:13px;flex-shrink:0">${esc(u.initials)}</div>
+      <div style="min-width:0">
+        <div class="compose-user-name">${esc(u.name)}</div>
+        <div class="compose-user-role">${u.role === 'manager' ? 'Менеджер' : 'Сотрудник'}</div>
+      </div>
+    `;
+    list.appendChild(label);
+  });
+}
+
+async function startCompose() {
+  const checks = [...document.querySelectorAll('.compose-user-check:checked')];
+  const selectedIds = checks.map(cb => parseInt(cb.value));
+  if (!selectedIds.length) return;
+
+  if (composeMode === 'direct') {
+    const uid = selectedIds[0];
+    const u = composeUsers.find(x => x.id === uid);
+    if (!u) return;
+    const c = {
+      id: null, type: 'direct', name: u.name, initials: u.initials,
+      color: u.color, partner_id: u.id, partner_role: u.role,
+      online: u.online, last_seen: null, unread_count: 0, last_message: null,
+    };
+    // Check if DM already in list
+    const existing = conversations.find(x => x.type === 'direct' && x.partner_id === uid);
+    closeComposeModal();
+    await openConv(existing || c);
+  } else {
+    const name = (document.getElementById('compose-group-name')?.value || '').trim() || 'Группа';
+    const r = await fetch('/chat/group', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, user_ids: selectedIds }),
+    });
+    if (!r.ok) return;
+    const conv = await r.json();
+    conversations.unshift(conv);
+    convMap.set(conv.id, conv);
+    renderConvList();
+    closeComposeModal();
+    openConv(conv);
+  }
+}
+
 // ── Events binding ─────────────────────────────────────────────────────────────
 function bindEvents() {
   // Send on Enter (Shift+Enter = newline)
@@ -945,8 +1052,9 @@ function bindEvents() {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       hideContextMenu();
-      $emojiPicker?.classList.add('hidden');
+      closeEmojiPicker();
       cancelReply();
+      closeComposeModal();
     }
   });
 

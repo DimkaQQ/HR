@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, Request, WebSocket, WebSocketDisconnect, HTTPException
+from pydantic import BaseModel
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, func, desc
@@ -246,6 +247,33 @@ async def list_conversations(request: Request, db: AsyncSession = Depends(get_db
             "last_message": _fmt_last(dm_last, user.id) if dm_last else None,
         })
 
+    # Group conversations where user is a member
+    gr = await db.execute(
+        select(Conversation)
+        .join(ConversationMember, ConversationMember.conversation_id == Conversation.id)
+        .where(ConversationMember.user_id == user.id, Conversation.type == ConversationType.group)
+    )
+    for conv in gr.scalars().all():
+        gm_mem = my_memberships.get(conv.id)
+        if not gm_mem:
+            gm_mem = await _ensure_member(db, conv.id, user.id)
+        g_last = await _last_msg(conv.id)
+        name = conv.name or "Группа"
+        initials = name[:2].upper()
+        result.append({
+            "id": conv.id,
+            "type": "group",
+            "name": name,
+            "initials": initials,
+            "color": "#5B8FF9",
+            "partner_id": None,
+            "partner_role": None,
+            "online": False,
+            "last_seen": None,
+            "unread_count": await _unread(conv.id, gm_mem.last_read_at),
+            "last_message": _fmt_last(g_last, user.id) if g_last else None,
+        })
+
     return JSONResponse(result)
 
 
@@ -340,6 +368,60 @@ async def get_or_create_direct(partner_id: int, request: Request, db: AsyncSessi
     user = await get_current_user(request, db)
     conv = await _ensure_direct(db, user.id, partner_id, user.venue_id)
     return JSONResponse({"conv_id": conv.id})
+
+
+@router.get("/users")
+async def list_users(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    r = await db.execute(
+        select(User).where(User.venue_id == user.venue_id, User.id != user.id).order_by(User.name)
+    )
+    return JSONResponse([
+        {
+            "id": u.id,
+            "name": u.name,
+            "initials": u.initials,
+            "color": u.avatar_color,
+            "role": u.role.value,
+            "online": manager.is_online(u.id),
+        }
+        for u in r.scalars().all()
+    ])
+
+
+class GroupCreate(BaseModel):
+    name: str
+    user_ids: list[int]
+
+
+@router.post("/group")
+async def create_group(body: GroupCreate, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    conv_name = body.name.strip() or "Группа"
+    conv = Conversation(type=ConversationType.group, name=conv_name, venue_id=user.venue_id)
+    db.add(conv)
+    await db.flush()
+
+    member_ids = list({user.id} | set(body.user_ids))
+    for uid in member_ids:
+        db.add(ConversationMember(conversation_id=conv.id, user_id=uid, last_read_at=datetime.utcnow()))
+
+    await db.commit()
+    await db.refresh(conv)
+
+    return JSONResponse({
+        "id": conv.id,
+        "type": "group",
+        "name": conv_name,
+        "initials": conv_name[:2].upper(),
+        "color": "#5B8FF9",
+        "partner_id": None,
+        "partner_role": None,
+        "online": False,
+        "last_seen": None,
+        "unread_count": 0,
+        "last_message": None,
+    })
 
 
 @router.delete("/messages/{msg_id}")

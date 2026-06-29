@@ -1,5 +1,5 @@
-from datetime import datetime, date, timedelta
-from fastapi import APIRouter, Depends, Request
+from datetime import datetime, date as date_cls, timedelta
+from fastapi import APIRouter, Depends, Request, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
@@ -18,7 +18,7 @@ XP_PER_ITEM = 2
 
 
 async def _update_streak(user: User) -> None:
-    today = date.today()
+    today = date_cls.today()
     if user.last_active is None:
         user.streak_days = 1
     elif user.last_active == today:
@@ -66,13 +66,13 @@ async def _get_or_create_daily(
 
 
 @router.get("", response_class=HTMLResponse)
-async def checklists_index(request: Request, date_str: str = "", db: AsyncSession = Depends(get_db)):
+async def checklists_index(request: Request, date: str = Query(default=""), db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
 
     try:
-        selected_date = date.fromisoformat(date_str) if date_str else date.today()
+        selected_date = date_cls.fromisoformat(date) if date else date_cls.today()
     except ValueError:
-        selected_date = date.today()
+        selected_date = date_cls.today()
 
     tpl_result = await db.execute(
         select(ChecklistTemplate)
@@ -106,7 +106,7 @@ async def checklists_index(request: Request, date_str: str = "", db: AsyncSessio
             "total": len(items_data),
         })
 
-    dates = [date.today() - timedelta(days=i) for i in range(7)]
+    dates = [date_cls.today() - timedelta(days=i) for i in range(7)]
 
     total_done_count = sum(cl["done"] for cl in checklist_data)
     total_all_count = sum(cl["total"] for cl in checklist_data)
@@ -116,7 +116,7 @@ async def checklists_index(request: Request, date_str: str = "", db: AsyncSessio
         "user": user,
         "checklist_data": checklist_data,
         "selected_date": selected_date,
-        "today": date.today(),
+        "today": date_cls.today(),
         "dates": dates,
         "total_done_count": total_done_count,
         "total_all_count": total_all_count,
@@ -180,7 +180,7 @@ async def toggle_item(daily_id: int, item_id: int, request: Request, db: AsyncSe
 async def history(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
 
-    dates = [date.today() - timedelta(days=i) for i in range(14)]
+    dates = [date_cls.today() - timedelta(days=i) for i in range(14)]
     history_data = []
 
     for d in dates:

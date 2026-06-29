@@ -19,7 +19,15 @@
 
     <!-- Sidebar header -->
     <div class="wa-sidebar-top">
-      <div class="wa-sidebar-title">Сообщения</div>
+      <div class="wa-sidebar-title-row">
+        <div class="wa-sidebar-title">Сообщения</div>
+        <button class="compose-btn" onclick="openNewChatModal()" title="Новый чат">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+        </button>
+      </div>
       <div class="wa-search-wrap">
         <span class="wa-search-icon">🔍</span>
         <input id="search-input" class="wa-search" placeholder="Поиск..." autocomplete="off">
@@ -124,7 +132,30 @@
   </div><!-- /wa-chat -->
 </div><!-- /wa-layout -->
 
-<!-- Context menu (dynamic) -->
+<!-- Compose modal -->
+<div id="compose-modal" class="compose-modal-overlay hidden" onclick="if(event.target===this)closeComposeModal()">
+  <div class="compose-modal">
+    <div class="compose-modal-header">
+      <span>Новый чат</span>
+      <button class="compose-modal-close" onclick="closeComposeModal()">✕</button>
+    </div>
+
+    <div class="compose-tabs">
+      <button id="compose-tab-direct" class="compose-tab active" onclick="switchComposeMode('direct')">Личный чат</button>
+      <button id="compose-tab-group" class="compose-tab" onclick="switchComposeMode('group')">Группа</button>
+    </div>
+
+    <div id="compose-name-wrap" style="display:none;padding:0 16px 8px">
+      <input id="compose-group-name" class="compose-name-input" placeholder="Название группы..." autocomplete="off">
+    </div>
+
+    <div id="compose-user-list" class="compose-user-list"></div>
+
+    <div class="compose-modal-footer">
+      <button class="btn btn-primary" style="width:100%" onclick="startCompose()">Начать</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
