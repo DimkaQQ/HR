@@ -172,10 +172,14 @@ a:hover { color: var(--white); }
   display: flex;
   align-items: center;
   padding: 0 32px;
+  padding-top: env(safe-area-inset-top, 0);
   gap: 12px;
   position: sticky;
   top: 0;
   z-index: 50;
+  /* When running as PWA (standalone), height grows to accommodate status bar */
+  min-height: 60px;
+  height: calc(60px + env(safe-area-inset-top, 0px));
 }
 
 .topbar-title {
@@ -1069,7 +1073,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 .font-600 { font-weight: 600; }
 .font-700 { font-weight: 700; }
 .w-full { width: 100%; }
-.hidden { display: none; }
+.hidden { display: none !important; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    WhatsApp-like Chat UI
@@ -2645,11 +2649,13 @@ body.lesson-body { background: var(--black); }
     display: flex;
     position: fixed;
     bottom: 0; left: 0; right: 0;
-    height: 56px;
+    height: calc(56px + env(safe-area-inset-bottom, 0px));
     background: var(--card);
     border-top: 1px solid var(--border);
     z-index: 200;
-    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
   }
 
   .mobile-tab {
@@ -2690,7 +2696,7 @@ body.lesson-body { background: var(--black); }
   /* Main content: full width, add bottom padding for tab bar */
   .main-content {
     margin-left: 0;
-    padding-bottom: 56px;
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
   }
 
   /* Topbar */

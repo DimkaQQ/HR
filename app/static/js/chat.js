@@ -237,7 +237,8 @@ async function openConv(c) {
   // Mobile: show chat panel, hide list panel
   document.querySelector('.wa-layout')?.classList.add('conv-open');
 
-  $input.focus();
+  // Don't auto-focus on mobile — triggers iOS keyboard immediately
+  if (window.innerWidth > 768) $input.focus();
 }
 
 function mobileBackToList() {
