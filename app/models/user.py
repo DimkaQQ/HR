@@ -32,6 +32,7 @@ class User(Base):
     venue_id: Mapped[int] = mapped_column(Integer, ForeignKey("venues.id"))
     avatar_color: Mapped[str] = mapped_column(String(7), default="#C8A84B")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    last_seen: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     venue: Mapped["Venue"] = relationship("Venue", back_populates="users")
     module_progresses: Mapped[list["ModuleProgress"]] = relationship("ModuleProgress", back_populates="user")

@@ -1,198 +1,132 @@
 {% extends "base.html" %}
 {% set active_page = "chat" %}
 
-{% block title %}Чат — RestOS Demo{% endblock %}
+{% block title %}Чат — RestOS{% endblock %}
 {% block page_title %}Чат{% endblock %}
-{% block page_subtitle %}<span class="topbar-subtitle" id="chat-header-sub">· Общий чат</span>{% endblock %}
 
 {% block head %}
 <style>
-  .page-body { padding: 0; max-width: none; flex: 1; overflow: hidden; }
+  .main-content { height: 100vh; overflow: hidden; }
+  .page-body { padding: 0; max-width: none; flex: 1; overflow: hidden; display: flex; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="chat-layout">
-  <div class="chat-sidebar">
-    <div class="chat-sidebar-header">Каналы</div>
-    <div class="chat-list">
-      <div class="chat-list-item active" data-conv="{{ general_id }}" onclick="switchConv({{ general_id }}, 'Общий чат')">
-        <div class="avatar avatar-sm" style="background:var(--gold);font-size:14px">#</div>
-        <div class="chat-list-item-info">
-          <div class="chat-list-item-name">Общий чат</div>
-          <div class="chat-list-item-preview">Все сотрудники</div>
-        </div>
+<div class="wa-layout">
+
+  <!-- LEFT: Conversation sidebar -->
+  <div class="wa-sidebar">
+
+    <!-- Sidebar header -->
+    <div class="wa-sidebar-top">
+      <div class="wa-sidebar-title">Сообщения</div>
+      <div class="wa-search-wrap">
+        <span class="wa-search-icon">🔍</span>
+        <input id="search-input" class="wa-search" placeholder="Поиск..." autocomplete="off">
       </div>
     </div>
 
-    <div class="chat-sidebar-header" style="margin-top:4px">Личные сообщения</div>
-    <div class="chat-list">
-      {% for c in colleagues %}
-      <div class="chat-list-item" data-conv="dm-{{ c.id }}" onclick="openDirect({{ c.id }}, '{{ c.name }}')">
-        <div class="avatar avatar-sm" style="background:{{ c.avatar_color }}">{{ c.initials }}</div>
-        <div class="chat-list-item-info">
-          <div class="chat-list-item-name">{{ c.name }}</div>
-          <div class="chat-list-item-preview">{{ 'Менеджер' if c.role.value == 'manager' else 'Сотрудник' }}</div>
-        </div>
-      </div>
-      {% endfor %}
+    <!-- Connection status -->
+    <div id="conn-status" class="conn-status hidden">
+      <span class="conn-dot"></span> Переподключение...
     </div>
+
+    <!-- Conversation list -->
+    <div class="wa-conv-list" id="conv-list"></div>
   </div>
 
-  <div class="chat-main">
-    <div class="chat-header">
-      <div class="avatar avatar-sm" style="background:var(--gold);font-size:14px">#</div>
-      <div id="chat-header-name" style="font-weight:600">Общий чат</div>
-    </div>
+  <!-- RIGHT: Chat area -->
+  <div class="wa-chat">
 
-    <div class="chat-messages" id="messages"></div>
-
-    <div class="chat-input-area">
-      <div class="chat-input-row">
-        <textarea class="chat-input" id="msg-input" rows="1" placeholder="Написать сообщение... (Enter — отправить, Shift+Enter — новая строка)"></textarea>
-        <button class="btn btn-primary" id="send-btn">→</button>
+    <!-- Welcome screen -->
+    <div id="chat-welcome" class="wa-welcome">
+      <div style="font-size:64px;margin-bottom:20px">💬</div>
+      <div style="font-size:20px;font-weight:600;margin-bottom:8px">Выберите чат</div>
+      <div style="color:var(--muted);font-size:14px;max-width:280px;text-align:center">
+        Нажмите на любой контакт слева, чтобы начать общение
       </div>
     </div>
-  </div>
-</div>
+
+    <!-- Chat area (hidden until conv selected) -->
+    <div id="chat-area" class="wa-chat-inner hidden">
+
+      <!-- Chat header -->
+      <div class="wa-chat-header">
+        <div id="chat-header-info" class="wa-chat-header-info"></div>
+      </div>
+
+      <!-- Messages container -->
+      <div class="wa-messages" id="messages">
+        <!-- Load more button at top -->
+        <div id="load-more-btn" class="load-more-btn hidden">
+          <button onclick="document.getElementById('load-more-btn').click()">Загрузить ещё</button>
+        </div>
+      </div>
+
+      <!-- Typing indicator -->
+      <div id="typing-indicator" class="typing-indicator-bar hidden">
+        <div class="typing-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <span class="typing-text"></span>
+      </div>
+
+      <!-- Input area -->
+      <div class="wa-input-area">
+
+        <!-- Reply bar -->
+        <div id="reply-bar" class="reply-bar hidden">
+          <div class="reply-bar-line"></div>
+          <div class="reply-bar-body">
+            <div id="reply-name" class="reply-bar-name"></div>
+            <div id="reply-text" class="reply-bar-text"></div>
+          </div>
+          <button id="cancel-reply" class="reply-bar-close" title="Отменить">✕</button>
+        </div>
+
+        <!-- Input row -->
+        <div class="wa-input-row">
+          <!-- Emoji button -->
+          <button id="emoji-btn" class="wa-icon-btn" title="Emoji">😊</button>
+
+          <!-- Emoji picker -->
+          <div id="emoji-picker" class="emoji-picker hidden"></div>
+
+          <!-- Textarea -->
+          <textarea
+            id="msg-input"
+            class="wa-input"
+            placeholder="Написать сообщение..."
+            rows="1"
+            autocomplete="off"
+          ></textarea>
+
+          <!-- Send button -->
+          <button id="send-btn" class="wa-send-btn" title="Отправить">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /chat-inner -->
+
+    <!-- Scroll to bottom FAB -->
+    <button id="scroll-btn" class="scroll-fab" style="display:none" title="Вниз">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+
+  </div><!-- /wa-chat -->
+</div><!-- /wa-layout -->
+
+<!-- Context menu (dynamic) -->
 {% endblock %}
 
 {% block scripts %}
+<script src="/static/js/chat.js"></script>
 <script>
-const ME_ID = {{ user.id }};
-const GENERAL_CONV_ID = {{ general_id }};
-const WS_TOKEN = "{{ request.cookies.get('access_token', '') }}";
-
-let currentConvId = GENERAL_CONV_ID;
-let ws = null;
-let pollingTimer = null;
-
-const messagesEl = document.getElementById('messages');
-const inputEl = document.getElementById('msg-input');
-
-function scrollBottom() {
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-}
-
-function escapeHtml(text) {
-  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-}
-
-function renderMessage(msg) {
-  const isMine = (msg.is_mine !== undefined) ? msg.is_mine : (msg.sender_id === ME_ID);
-  const div = document.createElement('div');
-  div.className = 'message' + (isMine ? ' mine' : '');
-  div.innerHTML = `
-    <div class="avatar avatar-sm" style="background:${msg.sender_color}">${msg.sender_initials}</div>
-    <div>
-      ${isMine ? '' : `<div class="message-sender">${msg.sender_name}</div>`}
-      <div class="message-bubble">${escapeHtml(msg.text)}</div>
-      <div class="message-time">${msg.created_at}</div>
-    </div>
-  `;
-  return div;
-}
-
-async function loadMessages(convId) {
-  const res = await fetch(`/chat/messages/${convId}`);
-  const msgs = await res.json();
-  messagesEl.innerHTML = '';
-  msgs.forEach(m => messagesEl.appendChild(renderMessage(m)));
-  scrollBottom();
-}
-
-function connectWs(convId) {
-  if (ws) { try { ws.close(); } catch(e){} ws = null; }
-  if (pollingTimer) { clearInterval(pollingTimer); pollingTimer = null; }
-
-  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  try {
-    ws = new WebSocket(`${proto}://${location.host}/chat/ws/${convId}?token=${WS_TOKEN}`);
-    ws.onmessage = (e) => {
-      const msg = JSON.parse(e.data);
-      messagesEl.appendChild(renderMessage(msg));
-      scrollBottom();
-    };
-    ws.onclose = () => {
-      ws = null;
-      pollingTimer = setInterval(() => loadMessages(convId), 3000);
-    };
-    ws.onerror = () => { if(ws) ws.close(); };
-  } catch(e) {
-    pollingTimer = setInterval(() => loadMessages(convId), 3000);
-  }
-}
-
-async function switchConv(convId, name) {
-  currentConvId = convId;
-  document.getElementById('chat-header-name').textContent = name;
-  document.getElementById('chat-header-sub').textContent = '';
-  document.querySelectorAll('.chat-list-item').forEach(el => el.classList.remove('active'));
-  const item = document.querySelector(`[data-conv="${convId}"]`);
-  if (item) item.classList.add('active');
-
-  const headerAvatar = document.querySelector('.chat-header .avatar');
-  if (name === 'Общий чат') {
-    headerAvatar.textContent = '#';
-    headerAvatar.style.fontSize = '14px';
-  }
-
-  await loadMessages(convId);
-  connectWs(convId);
-}
-
-async function openDirect(userId, name) {
-  const res = await fetch(`/chat/direct/${userId}`);
-  const data = await res.json();
-  document.querySelectorAll('.chat-list-item').forEach(el => el.classList.remove('active'));
-  const item = document.querySelector(`[data-conv="dm-${userId}"]`);
-  if (item) item.classList.add('active');
-  const headerAvatar = document.querySelector('.chat-header .avatar');
-  headerAvatar.textContent = name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
-  headerAvatar.style.fontSize = '12px';
-  document.getElementById('chat-header-name').textContent = name;
-  currentConvId = data.conv_id;
-  await loadMessages(data.conv_id);
-  connectWs(data.conv_id);
-}
-
-inputEl.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
-});
-
-inputEl.addEventListener('input', function() {
-  this.style.height = 'auto';
-  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-});
-
-document.getElementById('send-btn').addEventListener('click', sendMessage);
-
-function sendMessage() {
-  const text = inputEl.value.trim();
-  if (!text) return;
-  inputEl.value = '';
-  inputEl.style.height = 'auto';
-
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ text }));
-  } else {
-    // Optimistic: show locally, reload after brief delay
-    const optimistic = {
-      sender_id: ME_ID, sender_name: 'Вы', sender_initials: '...',
-      sender_color: '#C8A84B', text, created_at: new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'}),
-      is_mine: true,
-    };
-    messagesEl.appendChild(renderMessage(optimistic));
-    scrollBottom();
-    setTimeout(() => loadMessages(currentConvId), 3000);
-  }
-}
-
-window.addEventListener('DOMContentLoaded', () => {
-  switchConv(GENERAL_CONV_ID, 'Общий чат');
-});
+  chatInit({{ user.id }}, "{{ request.cookies.get('access_token', '') }}");
 </script>
 {% endblock %}
