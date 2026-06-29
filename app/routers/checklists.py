@@ -31,7 +31,7 @@ async def _update_streak(user: User) -> None:
 
 
 async def _get_or_create_daily(
-    db: AsyncSession, template_id: int, venue_id: int, user_id: int, for_date: date
+    db: AsyncSession, template_id: int, venue_id: int, user_id: int, for_date: date_cls
 ) -> DailyChecklist:
     result = await db.execute(
         select(DailyChecklist).where(
