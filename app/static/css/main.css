@@ -2201,3 +2201,325 @@ body.lesson-body { background: var(--black); }
   70% { transform: scale(1.1); }
   100% { transform: scale(1); opacity: 1; }
 }
+
+/* ── Gamified Checklists ───────────────────────────────────────────────────── */
+
+/* Date tabs */
+.cl-date-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 20px;
+  scrollbar-width: none;
+}
+.cl-date-tabs::-webkit-scrollbar { display: none; }
+.cl-date-tab {
+  flex-shrink: 0;
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 2px solid var(--border);
+  color: var(--muted);
+  text-decoration: none;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.cl-date-tab:hover { border-color: var(--gold); color: var(--gold); }
+.cl-date-tab.active { background: var(--gold); border-color: var(--gold); color: var(--black); }
+
+/* Day header */
+.cl-day-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 28px;
+  margin-bottom: 20px;
+}
+
+.cl-day-ring-wrap {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+}
+.cl-day-ring {
+  width: 72px;
+  height: 72px;
+  transform: rotate(-90deg);
+}
+.cl-day-ring-bg { fill: none; stroke: var(--border); stroke-width: 4; }
+.cl-day-ring-fill {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s ease;
+}
+.cl-day-pct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--gold);
+}
+
+.cl-day-info { flex: 1; }
+.cl-day-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.cl-day-sub { font-size: 14px; color: var(--muted); }
+.cl-day-badges { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.cl-day-badge {
+  background: var(--gold-dim);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gold);
+  transition: all 0.3s;
+}
+
+/* All-done banner */
+.cl-all-done-banner {
+  display: none;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(135deg, rgba(75,200,126,0.12), rgba(200,168,75,0.12));
+  border: 1px solid var(--success);
+  border-radius: 14px;
+  padding: 18px 24px;
+  margin-bottom: 20px;
+  animation: ob-pop 0.4s ease;
+}
+.cl-all-done-banner.visible { display: flex; }
+.cl-all-done-icon { font-size: 40px; line-height: 1; flex-shrink: 0; }
+.cl-all-done-title { font-size: 18px; font-weight: 800; color: var(--success); }
+.cl-all-done-sub { font-size: 14px; color: var(--muted); margin-top: 2px; }
+
+/* Section cards */
+.cl-section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  transition: border-color 0.4s;
+}
+.cl-section.all-done { border-color: rgba(75,200,126,0.5); }
+
+.cl-section-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cl-section-icon { font-size: 32px; line-height: 1; flex-shrink: 0; }
+.cl-section-info { flex: 1; min-width: 0; }
+.cl-section-name { font-size: 16px; font-weight: 700; }
+.cl-section-desc { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+.cl-complete-badge {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  background: rgba(75,200,126,0.15);
+  border: 1px solid var(--success);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--success);
+  flex-shrink: 0;
+  white-space: nowrap;
+  animation: ob-pop 0.3s ease;
+}
+.cl-complete-badge.visible { display: flex; }
+
+/* Section ring */
+.cl-section-ring-wrap {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+}
+.cl-section-ring { width: 56px; height: 56px; transform: rotate(-90deg); }
+.cl-ring-bg { fill: none; stroke: var(--border); stroke-width: 3.5; }
+.cl-ring-fill {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease, stroke 0.4s;
+}
+.cl-ring-fill.done { stroke: var(--success); }
+.cl-ring-pct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--gold);
+  transition: color 0.4s;
+}
+.cl-ring-pct.done { color: var(--success); }
+
+/* Task items */
+.cl-tasks { padding: 10px 16px 16px; display: flex; flex-direction: column; gap: 8px; }
+
+.cl-task {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  background: var(--card2);
+  cursor: pointer;
+  transition: all 0.22s;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+.cl-task:hover { border-color: rgba(200,168,75,0.25); background: var(--card); }
+.cl-task.done {
+  background: rgba(75,200,126,0.07);
+  border-color: rgba(75,200,126,0.2);
+}
+.cl-task.done:hover { background: rgba(75,200,126,0.11); }
+
+.cl-task-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.cl-task-check {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 700;
+  transition: all 0.22s;
+  color: transparent;
+}
+.cl-task.done .cl-task-check {
+  background: var(--success);
+  border-color: var(--success);
+  color: #fff;
+  animation: cl-check-pop 0.3s ease;
+}
+
+@keyframes cl-check-pop {
+  0% { transform: scale(0.5); }
+  65% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+
+.cl-task-body { flex: 1; min-width: 0; }
+.cl-task-text {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.35;
+  transition: color 0.2s;
+}
+.cl-task.done .cl-task-text {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: rgba(107,101,96,0.5);
+}
+.cl-task-who {
+  font-size: 11px;
+  color: var(--success);
+  font-weight: 600;
+  margin-top: 2px;
+  min-height: 16px;
+}
+
+/* Ripple */
+.cl-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(75,200,126,0.3);
+  pointer-events: none;
+  animation: cl-ripple-anim 0.5s ease forwards;
+  transform: translate(-50%, -50%);
+}
+@keyframes cl-ripple-anim {
+  0% { width: 0; height: 0; opacity: 1; }
+  100% { width: 140px; height: 140px; opacity: 0; }
+}
+
+/* Particle emoji */
+.cl-particle {
+  position: fixed;
+  pointer-events: none;
+  font-size: 18px;
+  z-index: 9997;
+  animation: cl-particle-anim 0.75s ease forwards;
+}
+@keyframes cl-particle-anim {
+  0% { opacity: 1; transform: translate(0,0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.4); }
+}
+
+/* Section complete shake */
+@keyframes cl-celebrate {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+.cl-section.celebrating { animation: cl-celebrate 0.45s ease; }
+
+/* Combo badge */
+.cl-combo {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  background: var(--gold);
+  color: var(--black);
+  font-size: 17px;
+  font-weight: 800;
+  padding: 10px 22px;
+  border-radius: 14px;
+  z-index: 9999;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(200,168,75,0.5);
+  animation: cl-combo-anim 1.6s ease forwards;
+}
+@keyframes cl-combo-anim {
+  0% { opacity: 0; transform: translateY(16px) scale(0.8); }
+  18% { opacity: 1; transform: translateY(0) scale(1.05); }
+  75% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-10px) scale(0.9); }
+}
+
+/* Floating XP for checklists */
+.cl-xp-pop {
+  position: fixed;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--gold);
+  pointer-events: none;
+  z-index: 9998;
+  animation: xpFloat 1.2s ease forwards;
+}

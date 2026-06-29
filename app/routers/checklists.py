@@ -1,8 +1,8 @@
 from datetime import datetime, date, timedelta
-from fastapi import APIRouter, Depends, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select, and_
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,8 +14,25 @@ from app.models.checklist import ChecklistTemplate, ChecklistItem, DailyChecklis
 router = APIRouter(prefix="/checklists", tags=["checklists"])
 templates = Jinja2Templates(directory="app/templates")
 
+XP_PER_ITEM = 2
 
-async def _get_or_create_daily(db: AsyncSession, template_id: int, venue_id: int, for_date: date) -> DailyChecklist:
+
+async def _update_streak(user: User) -> None:
+    today = date.today()
+    if user.last_active is None:
+        user.streak_days = 1
+    elif user.last_active == today:
+        return
+    elif (today - user.last_active).days == 1:
+        user.streak_days = (user.streak_days or 0) + 1
+    else:
+        user.streak_days = 1
+    user.last_active = today
+
+
+async def _get_or_create_daily(
+    db: AsyncSession, template_id: int, venue_id: int, user_id: int, for_date: date
+) -> DailyChecklist:
     result = await db.execute(
         select(DailyChecklist).where(
             DailyChecklist.template_id == template_id,
@@ -30,7 +47,8 @@ async def _get_or_create_daily(db: AsyncSession, template_id: int, venue_id: int
         await db.flush()
 
         tpl_result = await db.execute(
-            select(ChecklistTemplate).options(selectinload(ChecklistTemplate.items))
+            select(ChecklistTemplate)
+            .options(selectinload(ChecklistTemplate.items))
             .where(ChecklistTemplate.id == template_id)
         )
         tpl = tpl_result.scalar_one_or_none()
@@ -39,7 +57,7 @@ async def _get_or_create_daily(db: AsyncSession, template_id: int, venue_id: int
                 db.add(ItemCompletion(
                     daily_checklist_id=daily.id,
                     item_id=item.id,
-                    user_id=1,
+                    user_id=user_id,
                     completed=False,
                 ))
         await db.commit()
@@ -65,7 +83,7 @@ async def checklists_index(request: Request, date_str: str = "", db: AsyncSessio
 
     checklist_data = []
     for tpl in templates_list:
-        daily = await _get_or_create_daily(db, tpl.id, user.venue_id, selected_date)
+        daily = await _get_or_create_daily(db, tpl.id, user.venue_id, user.id, selected_date)
 
         compl_result = await db.execute(
             select(ItemCompletion)
@@ -111,16 +129,46 @@ async def toggle_item(daily_id: int, item_id: int, request: Request, db: AsyncSe
         )
     )
     comp = result.scalar_one_or_none()
+    was_completed = comp.completed if comp else False
+
     if not comp:
-        comp = ItemCompletion(daily_checklist_id=daily_id, item_id=item_id, user_id=user.id, completed=True, completed_at=datetime.utcnow())
+        comp = ItemCompletion(
+            daily_checklist_id=daily_id,
+            item_id=item_id,
+            user_id=user.id,
+            completed=True,
+            completed_at=datetime.utcnow(),
+        )
         db.add(comp)
     else:
         comp.completed = not comp.completed
         comp.user_id = user.id
         comp.completed_at = datetime.utcnow() if comp.completed else None
 
+    xp_earned = 0
+    if not was_completed and comp.completed:
+        xp_earned = XP_PER_ITEM
+        user.xp = (user.xp or 0) + xp_earned
+        await _update_streak(user)
+
+    # Flush so comp.completed is current before the check query
+    await db.flush()
+
+    all_compl = await db.execute(
+        select(ItemCompletion).where(ItemCompletion.daily_checklist_id == daily_id)
+    )
+    all_completions = all_compl.scalars().all()
+    checklist_complete = bool(all_completions) and all(c.completed for c in all_completions)
+
     await db.commit()
-    return JSONResponse({"completed": comp.completed, "user_name": user.name})
+
+    return JSONResponse({
+        "completed": comp.completed,
+        "user_name": user.name,
+        "xp_earned": xp_earned,
+        "total_xp": user.xp or 0,
+        "checklist_complete": checklist_complete,
+    })
 
 
 @router.get("/history", response_class=HTMLResponse)

@@ -9,112 +9,352 @@
 {% endblock %}
 
 {% block content %}
-<div class="date-tabs">
-  {% for d in dates %}
-  <a href="/checklists?date={{ d.isoformat() }}"
-     class="date-tab {% if d == selected_date %}active{% endif %}">
-    {% if d == today %}Сегодня
-    {% elif d == today - (today - d) %}{{ d.strftime('%d.%m') }}
-    {% else %}{{ d.strftime('%d.%m') }}{% endif %}
-    {% if loop.index == 2 %}(вчера){% endif %}
-  </a>
-  {% endfor %}
-</div>
 
+{# ── Compute totals ─────────────────────────────────────────── #}
 {% set total_done = namespace(value=0) %}
 {% set total_all = namespace(value=0) %}
 {% for cl in checklist_data %}
   {% set total_done.value = total_done.value + cl.done %}
   {% set total_all.value = total_all.value + cl.total %}
 {% endfor %}
+{% set day_pct = ((total_done.value / total_all.value * 100) | int) if total_all.value else 0 %}
+{% set DAY_CIRC = 126 %}
+{% set SEC_CIRC = 88 %}
+{% set day_offset = DAY_CIRC - (day_pct / 100 * DAY_CIRC) | int %}
 
-<div class="stats-row mb-4">
-  <div class="stat-card">
-    <div class="stat-label">Выполнено задач</div>
-    <div class="stat-value">{{ total_done.value }}</div>
-    <div class="stat-meta">из {{ total_all.value }} на {{ selected_date.strftime('%d.%m') }}</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Прогресс дня</div>
-    <div class="stat-value">{{ ((total_done.value / total_all.value * 100) | int) if total_all.value else 0 }}%</div>
-    <div class="stat-meta">{{ checklist_data | length }} чек-листов</div>
-  </div>
-</div>
-
-{% for cl in checklist_data %}
-<div class="checklist-card">
-  <div class="checklist-card-header">
-    <div>
-      <div class="card-title">{{ cl.template.name }}</div>
-      {% if cl.template.description %}
-      <div class="card-subtitle">{{ cl.template.description }}</div>
-      {% endif %}
-    </div>
-    <div style="display:flex;align-items:center;gap:12px">
-      <div style="text-align:right">
-        <div style="font-size:13px;color:var(--muted)">{{ cl.done }} / {{ cl.total }}</div>
-        <div style="font-size:11px;color:{% if cl.done == cl.total %}var(--success){% else %}var(--muted){% endif %}">
-          {% if cl.done == cl.total %}Выполнено ✓{% else %}В процессе{% endif %}
-        </div>
-      </div>
-      <div style="width:48px">
-        <div class="progress-bar" style="height:8px">
-          <div class="progress-fill green" style="width:{{ ((cl.done / cl.total * 100) | int) if cl.total else 0 }}%"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {% for item_data in cl.items_data %}
-  {% set comp = item_data.completion %}
-  {% set done = comp and comp.completed %}
-  <div class="checklist-item-row {% if done %}done{% endif %}"
-       onclick="toggleItem({{ cl.daily.id }}, {{ item_data.item.id }}, this)"
-       id="item-{{ cl.daily.id }}-{{ item_data.item.id }}">
-    <div class="checklist-checkbox {% if done %}checked{% endif %}">
-      {% if done %}✓{% endif %}
-    </div>
-    <div class="checklist-item-text">{{ item_data.item.text }}</div>
-    <div class="checklist-item-who">
-      {% if done and comp.user %}{{ comp.user.name }}{% endif %}
-    </div>
-  </div>
+{# ── Date tabs ───────────────────────────────────────────────── #}
+<div class="cl-date-tabs">
+  {% for d in dates %}
+  {% set diff = (today - d).days %}
+  <a href="/checklists?date={{ d.isoformat() }}"
+     class="cl-date-tab {% if d == selected_date %}active{% endif %}">
+    {% if diff == 0 %}🔥 Сегодня
+    {% elif diff == 1 %}Вчера
+    {% else %}{{ d.strftime('%d.%m') }}{% endif %}
+  </a>
   {% endfor %}
 </div>
+
+{# ── Day progress header ─────────────────────────────────────── #}
+<div class="cl-day-header">
+  <div class="cl-day-ring-wrap">
+    <svg class="cl-day-ring" viewBox="0 0 48 48">
+      <circle class="cl-day-ring-bg" cx="24" cy="24" r="20"/>
+      <circle class="cl-day-ring-fill" id="day-ring-fill"
+              cx="24" cy="24" r="20"
+              stroke-dasharray="{{ DAY_CIRC }}"
+              stroke-dashoffset="{{ day_offset }}"/>
+    </svg>
+    <div class="cl-day-pct" id="day-pct-text">{{ day_pct }}%</div>
+  </div>
+
+  <div class="cl-day-info">
+    <div class="cl-day-title" id="day-title">
+      {% if day_pct == 100 %}🎉 Смена закрыта!
+      {% elif day_pct >= 75 %}💪 Почти готово!
+      {% elif day_pct >= 50 %}🚀 Половина сделана!
+      {% elif day_pct > 0 %}📋 Смена начата
+      {% else %}📋 Задания на смену{% endif %}
+    </div>
+    <div class="cl-day-sub" id="day-sub">
+      {{ total_done.value }} из {{ total_all.value }} задач выполнено
+    </div>
+    <div class="cl-day-badges">
+      <div class="cl-day-badge">⚡ {{ user.xp or 0 }} XP</div>
+      <div class="cl-day-badge">🔥 {{ user.streak_days or 0 }} дней подряд</div>
+      {% if day_pct == 100 %}
+      <div class="cl-day-badge" style="background:rgba(75,200,126,0.15);border-color:var(--success);color:var(--success)">
+        ✓ Всё выполнено
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# ── All-done banner ─────────────────────────────────────────── #}
+<div class="cl-all-done-banner {% if day_pct == 100 %}visible{% endif %}" id="all-done-banner">
+  <div class="cl-all-done-icon">🏆</div>
+  <div>
+    <div class="cl-all-done-title">Смена завершена! Так держать!</div>
+    <div class="cl-all-done-sub">Все задания выполнены — отличная работа, команда!</div>
+  </div>
+</div>
+
+{# ── Checklist sections ──────────────────────────────────────── #}
+{% for cl in checklist_data %}
+{% set sec_pct = ((cl.done / cl.total * 100) | int) if cl.total else 0 %}
+{% set sec_offset = SEC_CIRC - (sec_pct / 100 * SEC_CIRC) | int %}
+{% set name_lo = cl.template.name | lower %}
+{% if 'откр' in name_lo or 'утр' in name_lo %}{% set tmpl_icon = '🌅' %}
+{% elif 'закр' in name_lo or 'веч' in name_lo or 'ноч' in name_lo %}{% set tmpl_icon = '🌙' %}
+{% elif 'уборк' in name_lo or 'clean' in name_lo %}{% set tmpl_icon = '🧹' %}
+{% elif 'провер' in name_lo %}{% set tmpl_icon = '🔍' %}
+{% else %}{% set tmpl_icon = '📋' %}{% endif %}
+
+<div class="cl-section {% if cl.done == cl.total and cl.total > 0 %}all-done{% endif %}"
+     id="section-{{ cl.daily.id }}"
+     data-done="{{ cl.done }}"
+     data-total="{{ cl.total }}">
+
+  <div class="cl-section-head">
+    <div class="cl-section-icon">{{ tmpl_icon }}</div>
+    <div class="cl-section-info">
+      <div class="cl-section-name">{{ cl.template.name }}</div>
+      {% if cl.template.description %}
+      <div class="cl-section-desc">{{ cl.template.description }}</div>
+      {% endif %}
+    </div>
+    <div class="cl-complete-badge {% if cl.done == cl.total and cl.total > 0 %}visible{% endif %}"
+         id="badge-{{ cl.daily.id }}">✓ Выполнено</div>
+    <div class="cl-section-ring-wrap">
+      <svg class="cl-section-ring" viewBox="0 0 36 36">
+        <circle class="cl-ring-bg" cx="18" cy="18" r="14"/>
+        <circle class="cl-ring-fill {% if cl.done == cl.total and cl.total > 0 %}done{% endif %}"
+                id="ring-{{ cl.daily.id }}"
+                cx="18" cy="18" r="14"
+                stroke-dasharray="{{ SEC_CIRC }}"
+                stroke-dashoffset="{{ sec_offset }}"/>
+      </svg>
+      <div class="cl-ring-pct {% if cl.done == cl.total and cl.total > 0 %}done{% endif %}"
+           id="ring-pct-{{ cl.daily.id }}">
+        {{ sec_pct }}%
+      </div>
+    </div>
+  </div>
+
+  <div class="cl-tasks">
+    {% for item_data in cl.items_data %}
+    {% set comp = item_data.completion %}
+    {% set done = comp and comp.completed %}
+    <div class="cl-task {% if done %}done{% endif %}"
+         id="task-{{ cl.daily.id }}-{{ item_data.item.id }}"
+         onclick="handleToggle(event, {{ cl.daily.id }}, {{ item_data.item.id }})">
+      <div class="cl-task-num">{{ loop.index }}</div>
+      <div class="cl-task-check">{% if done %}✓{% endif %}</div>
+      <div class="cl-task-body">
+        <div class="cl-task-text">{{ item_data.item.text }}</div>
+        <div class="cl-task-who" id="who-{{ cl.daily.id }}-{{ item_data.item.id }}">
+          {% if done and comp.user %}✓ {{ comp.user.name }}{% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
 {% endfor %}
+
+<canvas id="confetti-canvas"></canvas>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
-async function toggleItem(dailyId, itemId, rowEl) {
-  const res = await fetch(`/checklists/toggle/${dailyId}/${itemId}`, { method: 'POST' });
-  const data = await res.json();
+const DAY_CIRC = {{ DAY_CIRC }};
+const SEC_CIRC = {{ SEC_CIRC }};
+const TOTAL_ALL = {{ total_all.value }};
+let totalDone = {{ total_done.value }};
+let comboCount = 0, comboTimer = null;
+let confettiAF = null;
 
-  const checkbox = rowEl.querySelector('.checklist-checkbox');
-  const whoEl = rowEl.querySelector('.checklist-item-who');
+async function handleToggle(e, dailyId, itemId) {
+  const taskEl = document.getElementById(`task-${dailyId}-${itemId}`);
+  if (!taskEl || taskEl.dataset.busy) return;
+  taskEl.dataset.busy = '1';
 
-  if (data.completed) {
-    checkbox.classList.add('checked');
-    checkbox.textContent = '✓';
-    rowEl.classList.add('done');
-    whoEl.textContent = data.user_name;
-  } else {
-    checkbox.classList.remove('checked');
-    checkbox.textContent = '';
-    rowEl.classList.remove('done');
-    whoEl.textContent = '';
+  spawnRipple(e, taskEl);
+
+  try {
+    const resp = await fetch(`/checklists/toggle/${dailyId}/${itemId}`, { method: 'POST' });
+    const data = await resp.json();
+
+    const check = taskEl.querySelector('.cl-task-check');
+    const whoEl = document.getElementById(`who-${dailyId}-${itemId}`);
+
+    if (data.completed) {
+      taskEl.classList.add('done');
+      check.textContent = '✓';
+      if (whoEl) whoEl.textContent = '✓ ' + data.user_name;
+      totalDone++;
+      if (data.xp_earned > 0) spawnXP(e, '+' + data.xp_earned + ' XP');
+      spawnParticles(e);
+      handleCombo();
+      if (data.checklist_complete) celebrateSection(dailyId);
+      if (totalDone >= TOTAL_ALL && TOTAL_ALL > 0) celebrateAll();
+    } else {
+      taskEl.classList.remove('done');
+      check.textContent = '';
+      if (whoEl) whoEl.textContent = '';
+      totalDone = Math.max(0, totalDone - 1);
+    }
+
+    updateSection(dailyId, data.completed);
+    updateDayRing();
+  } finally {
+    delete taskEl.dataset.busy;
   }
-
-  // Update summary counts
-  updateCounters();
 }
 
-function updateCounters() {
-  const done = document.querySelectorAll('.checklist-checkbox.checked').length;
-  const total = document.querySelectorAll('.checklist-checkbox').length;
-  const statCards = document.querySelectorAll('.stat-card .stat-value');
-  if (statCards[0]) statCards[0].textContent = done;
-  if (statCards[1]) statCards[1].textContent = total ? Math.round(done / total * 100) + '%' : '0%';
+/* ── Progress ring updates ───────────────────────────────────── */
+function updateSection(dailyId, added) {
+  const sec = document.getElementById(`section-${dailyId}`);
+  const ring = document.getElementById(`ring-${dailyId}`);
+  const pctEl = document.getElementById(`ring-pct-${dailyId}`);
+  const badge = document.getElementById(`badge-${dailyId}`);
+  if (!sec) return;
+
+  let done = parseInt(sec.dataset.done) + (added ? 1 : -1);
+  const total = parseInt(sec.dataset.total);
+  done = Math.max(0, Math.min(total, done));
+  sec.dataset.done = done;
+
+  const pct = total > 0 ? Math.round(done / total * 100) : 0;
+  const offset = Math.round(SEC_CIRC - pct / 100 * SEC_CIRC);
+
+  if (ring) { ring.style.strokeDashoffset = offset; }
+  if (pctEl) pctEl.textContent = pct + '%';
+
+  const allDone = done >= total && total > 0;
+  sec.classList.toggle('all-done', allDone);
+  badge?.classList.toggle('visible', allDone);
+  ring?.classList.toggle('done', allDone);
+  pctEl?.classList.toggle('done', allDone);
+}
+
+function updateDayRing() {
+  const pct = TOTAL_ALL > 0 ? Math.round(totalDone / TOTAL_ALL * 100) : 0;
+  const offset = Math.round(DAY_CIRC - pct / 100 * DAY_CIRC);
+
+  const fill = document.getElementById('day-ring-fill');
+  const pctEl = document.getElementById('day-pct-text');
+  const sub = document.getElementById('day-sub');
+  const title = document.getElementById('day-title');
+
+  if (fill) fill.style.strokeDashoffset = offset;
+  if (pctEl) pctEl.textContent = pct + '%';
+  if (sub) sub.textContent = `${totalDone} из ${TOTAL_ALL} задач выполнено`;
+  if (title) {
+    if (pct === 100)      title.textContent = '🎉 Смена закрыта!';
+    else if (pct >= 75)   title.textContent = '💪 Почти готово!';
+    else if (pct >= 50)   title.textContent = '🚀 Половина сделана!';
+    else if (pct > 0)     title.textContent = '📋 Смена начата';
+  }
+}
+
+/* ── Effects ─────────────────────────────────────────────────── */
+function spawnRipple(e, container) {
+  const rect = container.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'cl-ripple';
+  el.style.left = (e.clientX - rect.left) + 'px';
+  el.style.top = (e.clientY - rect.top) + 'px';
+  container.appendChild(el);
+  el.addEventListener('animationend', () => el.remove());
+}
+
+function spawnParticles(e) {
+  const emojis = ['⭐','✨','🌟','💫','⚡'];
+  for (let i = 0; i < 5; i++) {
+    const el = document.createElement('div');
+    el.className = 'cl-particle';
+    el.textContent = emojis[i % emojis.length];
+    el.style.left = e.clientX + 'px';
+    el.style.top = e.clientY + 'px';
+    const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
+    const dist = 48 + Math.random() * 36;
+    el.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+    el.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+}
+
+function spawnXP(e, text) {
+  const el = document.createElement('div');
+  el.className = 'cl-xp-pop';
+  el.textContent = text;
+  el.style.left = (e.clientX - 24) + 'px';
+  el.style.top = (e.clientY - 24) + 'px';
+  document.body.appendChild(el);
+  el.addEventListener('animationend', () => el.remove());
+}
+
+function handleCombo() {
+  comboCount++;
+  clearTimeout(comboTimer);
+  comboTimer = setTimeout(() => { comboCount = 0; }, 3200);
+
+  if (comboCount >= 3) {
+    const el = document.createElement('div');
+    el.className = 'cl-combo';
+    el.textContent = comboCount >= 6 ? `🔥 SUPER COMBO x${comboCount}!`
+                   : comboCount >= 4 ? `⚡ COMBO x${comboCount}!`
+                   : `✨ x${comboCount} подряд!`;
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+}
+
+function celebrateSection(dailyId) {
+  const sec = document.getElementById(`section-${dailyId}`);
+  if (!sec) return;
+  sec.classList.add('celebrating');
+  sec.addEventListener('animationend', () => sec.classList.remove('celebrating'), { once: true });
+}
+
+function celebrateAll() {
+  document.getElementById('all-done-banner')?.classList.add('visible');
+  startConfetti();
+  setTimeout(stopConfetti, 5000);
+}
+
+/* ── Confetti ────────────────────────────────────────────────── */
+function startConfetti() {
+  const canvas = document.getElementById('confetti-canvas');
+  if (!canvas) return;
+  canvas.style.display = 'block';
+  canvas.style.opacity = '1';
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  const colors = ['#C8A84B','#4BC87E','#4B7EC8','#FF4B4B','#F5F0E8','#E8C84B'];
+  const pieces = Array.from({length: 110}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * -canvas.height * 0.6,
+    w: 7 + Math.random() * 7, h: 4 + Math.random() * 5,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    speed: 2 + Math.random() * 3.5,
+    angle: Math.random() * Math.PI * 2,
+    spin: (Math.random() - 0.5) * 0.1,
+    drift: (Math.random() - 0.5) * 1.5,
+  }));
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.angle);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+      p.y += p.speed; p.x += p.drift; p.angle += p.spin;
+      if (p.y > canvas.height + 10) { p.y = -10; p.x = Math.random() * canvas.width; }
+    });
+    confettiAF = requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+function stopConfetti() {
+  cancelAnimationFrame(confettiAF);
+  const canvas = document.getElementById('confetti-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let alpha = 1;
+  function fade() {
+    alpha -= 0.04;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (alpha > 0) { canvas.style.opacity = alpha; requestAnimationFrame(fade); }
+    else { canvas.style.display = 'none'; canvas.style.opacity = '1'; }
+  }
+  fade();
 }
 </script>
 {% endblock %}
