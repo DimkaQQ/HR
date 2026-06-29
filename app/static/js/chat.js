@@ -127,9 +127,6 @@ async function loadConversations() {
     convMap.set(key, c);
   });
   renderConvList();
-  if (conversations.length && !currentConvId) {
-    openConv(conversations[0]);
-  }
 }
 
 function renderConvList() {

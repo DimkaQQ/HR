@@ -2695,7 +2695,8 @@ body.lesson-body { background: var(--black); }
 
   /* Topbar */
   .topbar { padding: 0 20px; gap: 12px; }
-  .page-body { padding: 16px; }
+  .page-body { padding: 16px; overflow-x: hidden; }
+  .main-content { overflow-x: hidden; }
 
   /* ── Chat mobile ── */
   .wa-layout { position: relative; overflow: hidden; }
@@ -2753,8 +2754,10 @@ body.lesson-body { background: var(--black); }
   .date-tab { flex-shrink: 0; padding: 7px 14px; font-size: 13px; }
 
   /* ── Onboarding mobile ── */
-  .ob-stats { gap: 10px; padding: 16px 12px 4px; }
-  .ob-stat-badge { padding: 10px 14px; min-width: 88px; }
+  .ob-stats { gap: 10px; padding: 16px 12px 4px; flex-wrap: wrap; justify-content: center; }
+  .ob-stat-badge { padding: 10px 14px; min-width: 80px; flex: 1; }
+  .staff-table { font-size: 12px; }
+  .staff-table th, .staff-table td { padding: 8px 6px; }
 
   /* ── Lesson / quiz mobile ── */
   .lesson-header { padding: 0 16px; }
