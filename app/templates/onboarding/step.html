@@ -1,60 +1,95 @@
-{% extends "base.html" %}
-{% set active_page = "onboarding" %}
-
+{% extends "base_lesson.html" %}
 {% block title %}{{ module.title }} — Шаг {{ step_num }}{% endblock %}
-{% block page_title %}{{ module.title }}{% endblock %}
-{% block page_subtitle %}<span class="topbar-subtitle">· Шаг {{ step_num }} из {{ total_steps }}</span>{% endblock %}
-{% block topbar_actions %}
-  <a href="/onboarding" class="btn btn-ghost btn-sm">← Все модули</a>
-{% endblock %}
 
-{% block content %}
-<div class="step-content">
-  <div class="step-breadcrumb">
-    <a href="/onboarding">Онбординг</a>
-    <span class="sep">/</span>
-    <span>{{ module.title }}</span>
-    <span class="sep">/</span>
-    <span>Шаг {{ step_num }}</span>
+{% block body %}
+<div class="lesson-screen">
+
+  <!-- Header: close / progress bar / XP -->
+  <header class="lesson-header">
+    <a href="/onboarding" class="lesson-close" title="Выйти из урока">✕</a>
+    <div class="lesson-bar">
+      <div class="lesson-bar-fill" id="bar-fill"
+           style="width:{{ ((step_num - 1) / total_steps * 100) | int }}%"></div>
+    </div>
+    <div class="lesson-xp">
+      ⚡ <span id="xp-counter">{{ user.xp or 0 }}</span>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <div class="lesson-content">
+    <div class="lesson-card">
+      <div class="lesson-step-label">{{ module.title }} · Шаг {{ step_num }} из {{ total_steps }}</div>
+      <h1 class="lesson-step-title">{{ step.title }}</h1>
+      <div class="lesson-step-body">{{ step.content }}</div>
+      {% if step.video_url %}
+      <div class="lesson-video">
+        <iframe src="{{ step.video_url }}" allowfullscreen></iframe>
+      </div>
+      {% endif %}
+    </div>
   </div>
 
-  <div class="steps-indicator">
-    {% for i in range(total_steps) %}
-    <div class="step-dot {% if i + 1 < step_num %}done{% elif i + 1 == step_num %}current{% endif %}"></div>
-    {% endfor %}
-  </div>
-
-  <div class="step-card">
-    <div class="step-header">
-      <div class="step-label">Шаг {{ step_num }} из {{ total_steps }}</div>
-      <h2 class="step-title">{{ step.title }}</h2>
-    </div>
-
-    <div class="step-text">{{ step.content }}</div>
-
-    {% if step.video_url %}
-    <div class="step-video">
-      <iframe src="{{ step.video_url }}" allowfullscreen></iframe>
-    </div>
+  <!-- Footer -->
+  <footer class="lesson-footer">
+    {% if step_num > 1 %}
+    <a href="/onboarding/{{ module.id }}/step/{{ step_num - 1 }}" class="lesson-btn-secondary">← Назад</a>
+    {% else %}
+    <a href="/onboarding" class="lesson-btn-secondary">← К модулям</a>
     {% endif %}
+    <button class="lesson-btn" id="continue-btn" onclick="completeStep()">
+      {% if step_num < total_steps %}Продолжить{% elif has_quiz %}К тесту{% else %}Завершить{% endif %}
+    </button>
+  </footer>
 
-    <div class="step-nav">
-      {% if step_num > 1 %}
-      <a href="/onboarding/{{ module.id }}/step/{{ step_num - 1 }}" class="btn btn-outline">← Назад</a>
-      {% else %}
-      <a href="/onboarding" class="btn btn-ghost">← К модулям</a>
-      {% endif %}
-
-      {% if step_num < total_steps %}
-      <a href="/onboarding/{{ module.id }}/step/{{ step_num + 1 }}" class="btn btn-primary">
-        Следующий шаг →
-      </a>
-      {% else %}
-      <a href="/onboarding/{{ module.id }}/quiz" class="btn btn-primary">
-        Пройти тест →
-      </a>
-      {% endif %}
-    </div>
-  </div>
 </div>
+
+<script>
+async function completeStep() {
+  const btn = document.getElementById('continue-btn');
+  btn.disabled = true;
+  btn.textContent = '...';
+
+  try {
+    const resp = await fetch('/onboarding/{{ module.id }}/step/{{ step_num }}/complete', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+    });
+    const data = await resp.json();
+
+    if (data.xp_earned > 0) {
+      const counter = document.getElementById('xp-counter');
+      counter.textContent = data.total_xp;
+      counter.classList.add('xp-flash');
+      setTimeout(() => counter.classList.remove('xp-flash'), 600);
+
+      // Floating XP bubble
+      const el = document.createElement('div');
+      el.className = 'xp-float';
+      el.textContent = '+' + data.xp_earned + ' XP';
+      const r = btn.getBoundingClientRect();
+      el.style.left = (r.left + r.width / 2 - 30) + 'px';
+      el.style.top = (r.top - 10) + 'px';
+      document.body.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }
+
+    // Advance progress bar
+    document.getElementById('bar-fill').style.width =
+      ({{ step_num }} / {{ total_steps }} * 100) + '%';
+
+    setTimeout(() => { window.location.href = data.next_url; },
+      data.xp_earned > 0 ? 900 : 200);
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = '{% if step_num < total_steps %}Продолжить{% elif has_quiz %}К тесту{% else %}Завершить{% endif %}';
+  }
+}
+
+// Allow keyboard shortcut
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !document.getElementById('continue-btn').disabled)
+    completeStep();
+});
+</script>
 {% endblock %}

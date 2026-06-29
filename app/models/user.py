@@ -1,5 +1,5 @@
-from datetime import datetime
-from sqlalchemy import String, Integer, DateTime, ForeignKey, Enum as SAEnum
+from datetime import datetime, date
+from sqlalchemy import String, Integer, DateTime, Date, ForeignKey, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 
@@ -33,6 +33,9 @@ class User(Base):
     avatar_color: Mapped[str] = mapped_column(String(7), default="#C8A84B")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     last_seen: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    xp: Mapped[int] = mapped_column(Integer, default=0)
+    streak_days: Mapped[int] = mapped_column(Integer, default=0)
+    last_active: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     venue: Mapped["Venue"] = relationship("Venue", back_populates="users")
     module_progresses: Mapped[list["ModuleProgress"]] = relationship("ModuleProgress", back_populates="user")

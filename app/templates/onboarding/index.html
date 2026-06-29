@@ -6,84 +6,133 @@
 {% block page_subtitle %}<span class="topbar-subtitle">· Обучение сотрудников</span>{% endblock %}
 
 {% block content %}
-<div class="stats-row">
-  <div class="stat-card">
-    <div class="stat-label">Ваш прогресс</div>
-    <div class="stat-value">{{ overall_pct }}%</div>
-    <div class="stat-meta">{{ completed }} из {{ total }} модулей</div>
+
+<!-- Stats strip -->
+<div class="ob-stats">
+  <div class="ob-stat-badge">
+    <span class="ob-stat-icon">⚡</span>
+    <div>
+      <div class="ob-stat-value">{{ user.xp or 0 }}</div>
+      <div class="ob-stat-label">XP заработано</div>
+    </div>
   </div>
-  <div class="stat-card">
-    <div class="stat-label">Пройдено модулей</div>
-    <div class="stat-value">{{ completed }}</div>
-    <div class="stat-meta">Завершено с сертификатом</div>
+  <div class="ob-stat-badge">
+    <span class="ob-stat-icon">🔥</span>
+    <div>
+      <div class="ob-stat-value">{{ user.streak_days or 0 }}</div>
+      <div class="ob-stat-label">Дней подряд</div>
+    </div>
   </div>
-  <div class="stat-card">
-    <div class="stat-label">Осталось</div>
-    <div class="stat-value">{{ total - completed }}</div>
-    <div class="stat-meta">Модулей к изучению</div>
+  <div class="ob-stat-badge">
+    <span class="ob-stat-icon">🏆</span>
+    <div>
+      <div class="ob-stat-value">{{ completed }} / {{ total }}</div>
+      <div class="ob-stat-label">Пройдено модулей</div>
+    </div>
   </div>
 </div>
 
-{% if overall_pct > 0 %}
-<div class="card mb-4">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-    <span style="font-size:13px;color:var(--muted)">Общий прогресс обучения</span>
-    <span style="font-size:13px;font-weight:600;color:var(--gold)">{{ overall_pct }}%</span>
-  </div>
-  <div class="progress-bar" style="height:10px">
-    <div class="progress-fill green" style="width:{{ overall_pct }}%"></div>
-  </div>
-</div>
-{% endif %}
-
-<div class="section-title">Учебные модули</div>
-<div class="section-subtitle">Последовательно проходите каждый модуль и сдавайте тест</div>
-
-<div class="modules-grid">
+<!-- Skill path -->
+<div class="skill-path">
   {% for d in module_data %}
   {% set m = d.module %}
-  {% set prog = d.progress %}
-  <div class="module-card {% if prog and prog.completed %}completed{% endif %}">
-    <div class="module-number">Модуль {{ loop.index }}</div>
-    <div class="module-title">{{ m.title }}</div>
-    <div class="module-desc">{{ m.description }}</div>
 
-    <div style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px">
-        <span>Шаги: {{ d.current_step }} / {{ d.steps_count }}</span>
-        <span>{{ d.percent }}%</span>
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill {% if prog and prog.completed %}green{% endif %}" style="width:{{ d.percent }}%"></div>
-      </div>
+  {% if not loop.first %}
+  <div class="skill-connector {% if module_data[loop.index0 - 1].is_completed %}done{% endif %}"></div>
+  {% endif %}
+
+  <div class="skill-node-wrap">
+    <div class="skill-node-tooltip">
+      <div style="font-weight:700;margin-bottom:2px">{{ m.title }}</div>
+      {% if d.is_completed %}
+        <div style="color:var(--success);font-size:11px">✓ Завершено</div>
+      {% elif d.is_locked %}
+        <div style="color:var(--muted);font-size:11px">🔒 Пройдите предыдущий модуль</div>
+      {% elif d.progress and d.current_step > 0 %}
+        <div style="color:var(--gold);font-size:11px">{{ d.current_step }} / {{ d.steps_count }} шагов</div>
+      {% else %}
+        <div style="color:var(--muted);font-size:11px">{{ d.steps_count }} шагов</div>
+      {% endif %}
     </div>
 
-    <div class="module-footer">
-      {% if prog and prog.completed %}
-        <span class="badge badge-green">✓ Завершено</span>
-        <a href="/onboarding/{{ m.id }}/certificate" class="btn btn-outline btn-sm">Сертификат</a>
-      {% elif prog and prog.current_step > 0 %}
-        <span class="badge badge-gold">В процессе</span>
-        <a href="/onboarding/{{ m.id }}/step/{{ prog.current_step }}" class="btn btn-primary btn-sm">Продолжить</a>
-      {% else %}
-        <span class="badge badge-muted">Не начато</span>
-        <a href="/onboarding/{{ m.id }}/step/1" class="btn btn-outline btn-sm">Начать</a>
-      {% endif %}
+    {% if d.is_locked %}
+    <div class="skill-node locked">
+      <span class="skill-node-icon">🔒</span>
+      <span class="skill-node-label" style="color:var(--muted)">{{ loop.index }}</span>
+    </div>
+    {% elif d.is_completed %}
+    <a href="/onboarding/{{ m.id }}/certificate" class="skill-node completed">
+      <span class="skill-node-icon">✅</span>
+      <span class="skill-node-label">Готово</span>
+    </a>
+    {% elif d.progress and d.current_step > 0 %}
+    <a href="/onboarding/{{ m.id }}/step/{{ d.current_step }}" class="skill-node in-progress">
+      <span class="skill-node-icon">📖</span>
+      <span class="skill-node-label">{{ loop.index }}</span>
+    </a>
+    {% else %}
+    <a href="/onboarding/{{ m.id }}/step/1" class="skill-node active">
+      <span class="skill-node-icon">⭐</span>
+      <span class="skill-node-label">Начать</span>
+    </a>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Module list cards -->
+<div style="max-width:620px;margin:0 auto;padding:0 20px 40px">
+  <div class="section-title" style="text-align:center;margin-bottom:20px">Все модули</div>
+
+  {% for d in module_data %}
+  {% set m = d.module %}
+  <div class="card" style="margin-bottom:12px{% if d.is_locked %};opacity:0.5{% endif %}">
+    <div style="display:flex;align-items:center;gap:16px">
+      <div style="font-size:36px;flex-shrink:0">
+        {% if d.is_completed %}✅
+        {% elif d.is_locked %}🔒
+        {% elif d.progress and d.current_step > 0 %}📖
+        {% else %}⭐{% endif %}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:15px;margin-bottom:3px">{{ loop.index }}. {{ m.title }}</div>
+        <div style="font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.description }}</div>
+        {% if not d.is_locked and d.steps_count > 0 %}
+        <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+          <div class="progress-bar" style="height:6px;flex:1">
+            <div class="progress-fill {% if d.is_completed %}green{% endif %}" style="width:{{ d.percent }}%"></div>
+          </div>
+          <span style="font-size:11px;color:var(--muted);flex-shrink:0">{{ d.percent }}%</span>
+        </div>
+        {% endif %}
+      </div>
+      <div style="flex-shrink:0">
+        {% if d.is_completed %}
+          <a href="/onboarding/{{ m.id }}/certificate" class="btn btn-outline btn-sm">🏆</a>
+        {% elif not d.is_locked %}
+          {% if d.progress and d.current_step > 0 %}
+            <a href="/onboarding/{{ m.id }}/step/{{ d.current_step }}" class="btn btn-primary btn-sm">→</a>
+          {% else %}
+            <a href="/onboarding/{{ m.id }}/step/1" class="btn btn-primary btn-sm">Начать</a>
+          {% endif %}
+        {% endif %}
+      </div>
     </div>
   </div>
   {% endfor %}
 </div>
 
 {% if staff_data %}
-<div style="margin-top:36px">
-  <div class="section-title">Прогресс сотрудников</div>
-  <div class="section-subtitle">Менеджерский обзор</div>
+<div style="max-width:620px;margin:0 auto;padding:0 20px 48px">
+  <div class="section-title" style="margin-bottom:16px">Прогресс сотрудников</div>
   <div class="card">
     <table class="staff-table">
       <thead>
         <tr>
           <th>Сотрудник</th>
           <th>Прогресс</th>
+          <th>XP</th>
+          <th>🔥</th>
           <th>Модулей</th>
         </tr>
       </thead>
@@ -99,11 +148,13 @@
               </div>
             </div>
           </td>
-          <td style="width:200px">
-            <div class="progress-bar">
+          <td style="width:140px">
+            <div class="progress-bar" style="height:6px">
               <div class="progress-fill green" style="width:{{ (s.completed / s.total * 100) | int if s.total else 0 }}%"></div>
             </div>
           </td>
+          <td><span style="font-weight:700;color:var(--gold)">{{ s.user.xp or 0 }}</span></td>
+          <td><span style="font-weight:600">{{ s.user.streak_days or 0 }}</span></td>
           <td>
             <span style="font-weight:600">{{ s.completed }}</span>
             <span style="color:var(--muted)"> / {{ s.total }}</span>
@@ -115,4 +166,5 @@
   </div>
 </div>
 {% endif %}
+
 {% endblock %}

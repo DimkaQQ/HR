@@ -1,81 +1,310 @@
-{% extends "base.html" %}
-{% set active_page = "onboarding" %}
-
+{% extends "base_lesson.html" %}
 {% block title %}Тест: {{ module.title }}{% endblock %}
-{% block page_title %}Тест{% endblock %}
-{% block page_subtitle %}<span class="topbar-subtitle">· {{ module.title }}</span>{% endblock %}
-{% block topbar_actions %}
-  <a href="/onboarding" class="btn btn-ghost btn-sm">← Все модули</a>
-{% endblock %}
 
-{% block content %}
-<div class="step-content">
-  {% if request.query_params.get('result') and last_attempt %}
-  <div class="card quiz-result-card mb-4">
-    <div class="quiz-score-circle {% if last_attempt.passed %}pass{% else %}fail{% endif %}">
-      {{ (last_attempt.score * 100) | int }}%
+{% block body %}
+<canvas id="confetti-canvas"></canvas>
+
+<div class="lesson-screen" id="lesson-screen">
+
+  <!-- Header: close / progress / hearts -->
+  <header class="lesson-header">
+    <a href="/onboarding" class="lesson-close" id="close-btn" title="Выйти">✕</a>
+    <div class="lesson-bar">
+      <div class="lesson-bar-fill" id="bar-fill" style="width:0%"></div>
     </div>
-    <h2 style="font-size:22px;font-weight:700;margin-bottom:8px">
-      {% if last_attempt.passed %}🎉 Тест пройден!{% else %}😔 Попробуйте ещё раз{% endif %}
-    </h2>
-    <p style="color:var(--muted);margin-bottom:20px">
-      {% if last_attempt.passed %}
-        Поздравляем! Вы успешно прошли тест по модулю «{{ module.title }}».
-      {% else %}
-        Для прохождения нужно набрать {{ (quiz.pass_score * 100) | int }}% правильных ответов.
-        Вы набрали {{ (last_attempt.score * 100) | int }}%. Повторите материал и попробуйте снова.
-      {% endif %}
-    </p>
-    {% if last_attempt.passed %}
-    <div style="display:flex;gap:10px;justify-content:center">
-      <a href="/onboarding/{{ module.id }}/certificate" class="btn btn-primary">Получить сертификат 🏆</a>
-      <a href="/onboarding" class="btn btn-outline">К модулям</a>
+    <div class="lesson-hearts" id="hearts-display">
+      <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
     </div>
-    {% else %}
-    <a href="/onboarding/{{ module.id }}/step/1" class="btn btn-outline">Повторить материал</a>
-    {% endif %}
-  </div>
-  {% endif %}
+  </header>
 
-  {% if not (request.query_params.get('result') and last_attempt and last_attempt.passed) %}
-  <div class="step-breadcrumb">
-    <a href="/onboarding">Онбординг</a>
-    <span class="sep">/</span>
-    <a href="/onboarding/{{ module.id }}/step/1">{{ module.title }}</a>
-    <span class="sep">/</span>
-    <span>Тест</span>
-  </div>
-
-  <div class="step-card" style="max-width:100%">
-    <div class="step-header">
-      <div class="step-label">Финальный тест</div>
-      <h2 class="step-title">{{ module.title }}</h2>
-      <p style="color:var(--muted);font-size:14px;margin-top:8px">
-        Для прохождения необходимо ответить правильно на {{ (quiz.pass_score * 100) | int }}% вопросов.
-      </p>
-    </div>
-
-    <form method="post" action="/onboarding/{{ module.id }}/quiz/submit">
-      {% for question in quiz.questions %}
-      <div class="quiz-question">
-        <div class="quiz-question-text">{{ loop.index }}. {{ question.text }}</div>
-        <div class="quiz-options">
-          {% for option in question.options %}
-          <label class="quiz-option">
-            <input type="radio" name="question_{{ question.id }}" value="{{ option.id }}" required>
-            {{ option.text }}
-          </label>
-          {% endfor %}
-        </div>
+  {% if already_passed %}
+  <!-- Already passed -->
+  <div class="lesson-content">
+    <div class="lesson-card" style="text-align:center">
+      <div style="font-size:72px;margin-bottom:16px">🏆</div>
+      <h2 class="lesson-step-title">Тест уже пройден!</h2>
+      <p style="color:var(--muted);margin-bottom:28px">Вы успешно сдали тест по модулю «{{ module.title }}».</p>
+      <div style="display:flex;gap:12px;justify-content:center">
+        <a href="/onboarding/{{ module.id }}/certificate" class="lesson-btn">🏆 Сертификат</a>
+        <a href="/onboarding" class="lesson-btn-secondary">К модулям</a>
       </div>
-      {% endfor %}
-
-      <div style="display:flex;gap:10px;margin-top:20px">
-        <button type="submit" class="btn btn-primary btn-lg">Отправить ответы</button>
-        <a href="/onboarding/{{ module.id }}/step/{{ module.steps | length }}" class="btn btn-outline">← Вернуться</a>
-      </div>
-    </form>
+    </div>
   </div>
+  {% else %}
+
+  <!-- Question area -->
+  <div class="lesson-content" id="question-area">
+    <div class="lesson-card" id="question-card">
+      <div class="lesson-step-label" id="question-counter"></div>
+      <div class="quiz-question-text" id="question-text"></div>
+      <div class="quiz-options-grid" id="option-container"></div>
+    </div>
+  </div>
+
+  <!-- Result area (hidden initially) -->
+  <div class="lesson-content hidden" id="result-area">
+    <div class="lesson-card">
+      <div class="quiz-result" id="result-inner"></div>
+    </div>
+  </div>
+
+  <!-- Feedback bar -->
+  <div id="quiz-feedback-bar" class="quiz-feedback-bar">
+    <div>
+      <div class="quiz-feedback-msg" id="feedback-msg"></div>
+      <div class="quiz-feedback-answer" id="feedback-answer"></div>
+    </div>
+    <button class="lesson-btn" id="next-btn" onclick="engine.next()">Продолжить</button>
+  </div>
+
+  <!-- Check button footer -->
+  <footer class="lesson-footer" id="check-footer">
+    <div class="check-btn-wrap">
+      <button class="lesson-btn" id="check-btn" disabled onclick="engine.check()">Проверить</button>
+    </div>
+  </footer>
+
   {% endif %}
 </div>
+
+<script>
+const MODULE_ID = {{ module.id }};
+
+class QuizEngine {
+  constructor() {
+    this.questions = [];
+    this.passScore = 0.7;
+    this.idx = 0;
+    this.hearts = 3;
+    this.answers = {};
+    this.selected = null;
+    this.state = 'loading';
+  }
+
+  async load() {
+    const data = await fetch(`/onboarding/${MODULE_ID}/quiz-data`).then(r => r.json());
+    this.questions = data.questions;
+    this.passScore = data.pass_score;
+    this.state = 'question';
+    this.renderQuestion();
+  }
+
+  renderQuestion() {
+    const q = this.questions[this.idx];
+    const total = this.questions.length;
+
+    document.getElementById('bar-fill').style.width = (this.idx / total * 100) + '%';
+    document.getElementById('question-counter').textContent = `Вопрос ${this.idx + 1} из ${total}`;
+    document.getElementById('question-text').textContent = q.text;
+    this.renderHearts();
+
+    const container = document.getElementById('option-container');
+    container.innerHTML = '';
+    for (const opt of q.options) {
+      const btn = document.createElement('button');
+      btn.className = 'quiz-option-btn';
+      btn.textContent = opt.text;
+      btn.dataset.optId = String(opt.id);
+      btn.onclick = () => this.select(String(opt.id));
+      container.appendChild(btn);
+    }
+
+    const fb = document.getElementById('quiz-feedback-bar');
+    fb.classList.remove('correct', 'wrong', 'visible');
+
+    document.getElementById('check-btn').disabled = true;
+    this.selected = null;
+    this.state = 'question';
+  }
+
+  select(optId) {
+    if (this.state !== 'question') return;
+    this.selected = optId;
+    document.querySelectorAll('.quiz-option-btn').forEach(b => {
+      b.classList.toggle('selected', b.dataset.optId === optId);
+    });
+    document.getElementById('check-btn').disabled = false;
+  }
+
+  check() {
+    if (!this.selected || this.state !== 'question') return;
+    this.state = 'feedback';
+
+    const q = this.questions[this.idx];
+    this.answers[q.id] = this.selected;
+    const isCorrect = String(q.correct_id) === this.selected;
+
+    document.querySelectorAll('.quiz-option-btn').forEach(b => {
+      b.disabled = true;
+      if (b.dataset.optId === String(q.correct_id)) {
+        b.classList.add('correct');
+        b.classList.remove('selected');
+      } else if (b.dataset.optId === this.selected && !isCorrect) {
+        b.classList.add('wrong');
+        b.classList.remove('selected');
+      }
+    });
+
+    if (!isCorrect) {
+      this.hearts = Math.max(0, this.hearts - 1);
+      this.renderHearts();
+    }
+
+    const fb = document.getElementById('quiz-feedback-bar');
+    fb.className = `quiz-feedback-bar ${isCorrect ? 'correct' : 'wrong'} visible`;
+
+    document.getElementById('feedback-msg').textContent = isCorrect ? '✓ Верно!' : '✗ Неверно';
+
+    const correctOpt = q.options.find(o => String(o.id) === String(q.correct_id));
+    document.getElementById('feedback-answer').textContent = isCorrect
+      ? 'Отличная работа!'
+      : `Правильный ответ: ${correctOpt ? correctOpt.text : ''}`;
+
+    document.getElementById('check-footer').style.display = 'none';
+    document.getElementById('quiz-feedback-bar').style.display = 'flex';
+  }
+
+  async next() {
+    this.idx++;
+    if (this.idx < this.questions.length) {
+      document.getElementById('check-footer').style.display = '';
+      this.renderQuestion();
+    } else {
+      await this.showResult();
+    }
+  }
+
+  async showResult() {
+    this.state = 'result';
+
+    const resp = await fetch(`/onboarding/${MODULE_ID}/quiz/submit-json`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ answers: this.answers }),
+    });
+    const data = await resp.json();
+
+    document.getElementById('question-area').classList.add('hidden');
+    document.getElementById('quiz-feedback-bar').style.display = 'none';
+    document.getElementById('check-footer').style.display = 'none';
+    document.getElementById('result-area').classList.remove('hidden');
+    document.getElementById('bar-fill').style.width = '100%';
+    document.getElementById('close-btn').href = '/onboarding';
+
+    const inner = document.getElementById('result-inner');
+
+    if (data.passed) {
+      startConfetti();
+      setTimeout(stopConfetti, 5000);
+
+      inner.innerHTML = `
+        <div class="quiz-result-icon">🎉</div>
+        <div class="quiz-result-title">Тест пройден!</div>
+        <div class="quiz-result-score">${data.score}%</div>
+        <div class="quiz-result-sub">${data.correct} из ${data.total} верных ответов</div>
+        ${data.xp_earned > 0 ? `<div class="quiz-result-xp">+${data.xp_earned} XP заработано!</div>` : ''}
+        <div style="display:flex;gap:12px;margin-top:8px;justify-content:center;flex-wrap:wrap">
+          <a href="${data.certificate_url}" class="lesson-btn">🏆 Получить сертификат</a>
+          <a href="/onboarding" class="lesson-btn-secondary">К модулям</a>
+        </div>`;
+    } else {
+      inner.innerHTML = `
+        <div class="quiz-result-icon">😔</div>
+        <div class="quiz-result-title">Попробуйте ещё раз</div>
+        <div class="quiz-result-score">${data.score}%</div>
+        <div class="quiz-result-sub">Нужно ${Math.round(this.passScore * 100)}% для прохождения</div>
+        <div style="display:flex;gap:12px;margin-top:8px;justify-content:center;flex-wrap:wrap">
+          <a href="/onboarding/${MODULE_ID}/step/1" class="lesson-btn-secondary">Повторить материал</a>
+          <a href="/onboarding/${MODULE_ID}/quiz" class="lesson-btn">Попробовать снова</a>
+        </div>`;
+    }
+  }
+
+  renderHearts() {
+    const c = document.getElementById('hearts-display');
+    c.innerHTML = '';
+    for (let i = 0; i < 3; i++) {
+      const s = document.createElement('span');
+      s.className = 'heart' + (i >= this.hearts ? ' lost' : '');
+      s.textContent = '❤️';
+      c.appendChild(s);
+    }
+  }
+}
+
+const engine = new QuizEngine();
+engine.load();
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const check = document.getElementById('check-btn');
+    const next = document.getElementById('next-btn');
+    if (!check.disabled && engine.state === 'question') engine.check();
+    else if (engine.state === 'feedback') engine.next();
+  }
+  const num = parseInt(e.key);
+  if (num >= 1 && num <= 4 && engine.state === 'question') {
+    const btns = document.querySelectorAll('.quiz-option-btn');
+    if (btns[num - 1]) btns[num - 1].click();
+  }
+});
+
+// Confetti
+let confettiAF;
+function startConfetti() {
+  const canvas = document.getElementById('confetti-canvas');
+  canvas.style.display = 'block';
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  const colors = ['#C8A84B','#4BC87E','#4B7EC8','#FF4B4B','#F5F0E8','#E8A84B'];
+  const pieces = Array.from({length: 140}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * -canvas.height * 0.5,
+    w: 6 + Math.random() * 9,
+    h: 4 + Math.random() * 6,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    speed: 2.5 + Math.random() * 4,
+    angle: Math.random() * Math.PI * 2,
+    spin: (Math.random() - 0.5) * 0.12,
+    drift: (Math.random() - 0.5) * 1.5,
+  }));
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.angle);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+      p.y += p.speed;
+      p.x += p.drift;
+      p.angle += p.spin;
+      if (p.y > canvas.height + 20) {
+        p.y = -20;
+        p.x = Math.random() * canvas.width;
+      }
+    });
+    confettiAF = requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+function stopConfetti() {
+  cancelAnimationFrame(confettiAF);
+  const canvas = document.getElementById('confetti-canvas');
+  const ctx = canvas.getContext('2d');
+  let alpha = 1;
+  function fade() {
+    alpha -= 0.03;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (alpha > 0) { canvas.style.opacity = alpha; requestAnimationFrame(fade); }
+    else { canvas.style.display = 'none'; canvas.style.opacity = 1; }
+  }
+  fade();
+}
+</script>
 {% endblock %}
